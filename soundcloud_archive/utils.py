@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from math import ceil
 
+from fake_useragent import UserAgent
+
 
 class Weekday(IntEnum):
     MONDAY = 0
@@ -33,3 +35,7 @@ def get_week_of_month(date: datetime) -> Weekday:
 def get_default_kwargs(func):
     signature = inspect.signature(func)
     return {k: v.default for k, v in signature.parameters.items() if v.default is not inspect.Parameter.empty}
+
+
+def generate_random_user_agent() -> str:
+    return UserAgent().random

@@ -1,15 +1,22 @@
+import json
 import logging
 from datetime import datetime
 from typing import Any, Callable
 
 import devtools
-import httpx
+import requests
 from pydantic import BaseModel, Field, TypeAdapter
 from starlette.routing import compile_path
 
 from soundcloud_archive.models import Collection, CollectionType, CreatePlaylist, GetStream, PlaylistCreate, TrackID
 from soundcloud_archive.settings import get_settings
-from soundcloud_archive.utils import Weekday, get_default_kwargs, get_scheduled_time, get_week_of_month
+from soundcloud_archive.utils import (
+    Weekday,
+    generate_random_user_agent,
+    get_default_kwargs,
+    get_scheduled_time,
+    get_week_of_month,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,11 +63,15 @@ def route(method: str, path: str, response_model: BaseModel | None = None):
             response = await self.make_request(
                 method,
                 url,
-                content=split_params.content,
+                data=split_params.content,
                 params=params,
                 **split_params.kwargs,
             )
-            response_data = response.json()
+            try:
+                response_data = response.json()
+            except json.decoder.JSONDecodeError:
+                logger.error(f"Failed to decode response {response.text}")
+                return
             if not response_model:
                 return response_data
             return TypeAdapter(response_model).validate_python(response_data)
@@ -72,30 +83,33 @@ def route(method: str, path: str, response_model: BaseModel | None = None):
 
 class Client:
     def __init__(self, base_url: str = get_settings().base_url):
-        self.client = httpx.AsyncClient(
-            base_url=base_url,
-            headers={
-                "Authorization": f"OAuth {get_settings().oauth_token}",
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-                "x-datadome-clientid": get_settings().datadome_clientid,
-            },
-            params={
-                "client_id": get_settings().client_id,
-                "app_version": "1725276048",
-                "app_locale": "en",
-            },
-        )
+        self.base_url = base_url
+        self.headers = {
+            "Authorization": f"OAuth {get_settings().oauth_token}",
+            "User-Agent": generate_random_user_agent(),
+            "x-datadome-clientid": get_settings().datadome_clientid,
+        }
+        self.params = {
+            "client_id": get_settings().client_id,
+            "app_version": "1725276048",
+            "app_locale": "en",
+        }
+        self.proxies = {"https://": "https://" + get_settings().proxy}
 
     def json_dump(self, data: Any):
         return data if not isinstance(data, BaseModel) else data.model_dump(mode="json")
 
     async def make_request(self, method: str, url: str, **kwargs):
-        response = await self.client.request(method, url, **kwargs)
+        kwargs.setdefault("params", self.params)
+        kwargs.setdefault("headers", self.headers)
+        kwargs.setdefault("proxies", self.proxies)
+        kwargs.setdefault("verify", False)
+        response = requests.request(method, url, **kwargs)
         logger.info(f"Response {response.status_code} for {method} {response.url}")
         return response
 
     def make_url(self, path: str, **path_params: str) -> str:
-        return f"{self.client.base_url}/{path.format(**path_params)}"
+        return f"{self.base_url}/{path.format(**path_params)}"
 
     @route("POST", "playlists")
     async def post_playlist(self, data: CreatePlaylist): ...

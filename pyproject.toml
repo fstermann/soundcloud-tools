@@ -12,6 +12,7 @@ pydantic-settings = "^2.4.0"
 httpx = "^0.27.2"
 starlette = "^0.38.4"
 devtools = "^0.12.2"
+fake-useragent = "^1.5.1"
 
 [tool.poetry.scripts]
 soundcloud_archive = 'soundcloud_archive.__main__:main_script'

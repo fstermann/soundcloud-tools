@@ -12,6 +12,8 @@ class Setttings(BaseSettings):
     datadome_clientid: str
     user_id: int
 
+    proxy: str
+
 
 @lru_cache(maxsize=1)
 def get_settings():
