@@ -2,6 +2,11 @@ name: soundcloud-archive
 
 on:
   workflow_dispatch:
+    inputs:
+      week:
+        description: 'The week to archive. Defaults to 0 for the current week.'
+        required: false
+        default: 0
   schedule:
     # Weekly: Runs every Sunday at 8 AM UTC
     - cron: "0 8 * * 0"
@@ -25,4 +30,4 @@ jobs:
           DATADOME_CLIENTID: ${{ secrets.DATADOME_CLIENTID }}
           USER_ID: ${{ secrets.USER_ID }}
         run: |
-          poetry run soundcloud_archive
+          poetry run soundcloud_archive --week ${{ github.event.inputs.week || 0 }}

@@ -168,14 +168,15 @@ async def get_tracks_ids_in_timespan(
     return track_ids
 
 
-async def create_weekly_favorite_playlist(client: Client, user_id: int, types: list[CollectionType]):
-    start = get_scheduled_time(Weekday.SUNDAY, weeks=-1)
-    end = get_scheduled_time(Weekday.SUNDAY, weeks=0)
+async def create_weekly_favorite_playlist(client: Client, user_id: int, types: list[CollectionType], week: int = 0):
+    logger.info(f"Creating weekly favorite playlist for {week = } and {types = }")
+    start = get_scheduled_time(Weekday.SUNDAY, weeks=week - 1)
+    end = get_scheduled_time(Weekday.SUNDAY, weeks=week)
+    month, week_of_month = start.strftime("%b"), get_week_of_month(start)
+
     track_ids = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
 
     # Create playlist from track_ids
-    month = start.strftime("%b")
-    week_of_month = get_week_of_month(start)
     playlist = CreatePlaylist(
         playlist=PlaylistCreate(
             title=f"Weekly Favorites {month.upper()}/{week_of_month}",

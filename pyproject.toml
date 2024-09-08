@@ -14,7 +14,7 @@ starlette = "^0.38.4"
 devtools = "^0.12.2"
 
 [tool.poetry.scripts]
-soundcloud_archive = 'soundcloud_archive.__main__:main'
+soundcloud_archive = 'soundcloud_archive.__main__:main_script'
 
 [build-system]
 requires = ["poetry-core"]
