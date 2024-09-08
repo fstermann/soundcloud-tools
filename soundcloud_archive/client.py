@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class SplitParams(BaseModel):
-    client: "Client"
+    client: Any
     path_params: dict = Field(default_factory=dict)
     query_params: dict = Field(default_factory=dict)
     data: dict | None = None
@@ -23,7 +23,7 @@ class SplitParams(BaseModel):
     kwargs: dict = Field(default_factory=dict)
 
     @classmethod
-    async def from_route(cls, client: "Client", endpoint: Callable, path: str, **kwargs):
+    async def from_route(cls, client: Any, endpoint: Callable, path: str, **kwargs):
         full_kwargs = get_default_kwargs(endpoint) | kwargs
         params = cls(client=client)
 
