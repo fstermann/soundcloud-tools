@@ -1,10 +1,12 @@
 import asyncio
+import logging
 
 from soundcloud_archive.client import Client, create_weekly_favorite_playlist
 from soundcloud_archive.settings import get_settings
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(
         create_weekly_favorite_playlist(
             client=Client(),
