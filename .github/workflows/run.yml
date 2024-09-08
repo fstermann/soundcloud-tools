@@ -1,0 +1,29 @@
+name: soundcloud-archive
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly: Runs every Sunday at 8 AM UTC
+    - cron: "0 8 * * 0"
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poetry
+          run: pipx install poetry
+      - uses: actions/setup-python@v5
+          with:
+          python-version: '3.9'
+          cache: 'poetry'
+      - run: poetry install
+      - name: Archive weekly
+        if: contains(github.event.schedule, '0 5 * * 0')
+        env:
+          OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          DATADOME_CLIENTID: ${{ secrets.DATADOME_CLIENTID }}
+          USER_ID: ${{ secrets.USER_ID }}
+        run: |
+          poetry run soundcloud_archive
