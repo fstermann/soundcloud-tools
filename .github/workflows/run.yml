@@ -29,5 +29,6 @@ jobs:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           DATADOME_CLIENTID: ${{ secrets.DATADOME_CLIENTID }}
           USER_ID: ${{ secrets.USER_ID }}
+          PROXY: ${{ secrets.PROXY }}
         run: |
           poetry run soundcloud_archive --week ${{ github.event.inputs.week || 0 }}
