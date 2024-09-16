@@ -12,7 +12,7 @@ class Setttings(BaseSettings):
     datadome_clientid: str
     user_id: int
 
-    proxy: str
+    proxy: str | None = None
 
 
 @lru_cache(maxsize=1)

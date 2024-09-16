@@ -102,7 +102,8 @@ class Client:
     async def make_request(self, method: str, url: str, **kwargs):
         kwargs.setdefault("params", self.params)
         kwargs.setdefault("headers", self.headers)
-        kwargs.setdefault("proxies", self.proxies)
+        if get_settings().proxy:
+            kwargs.setdefault("proxies", self.proxies)
         kwargs.setdefault("verify", False)
         response = requests.request(method, url, **kwargs)
         logger.info(f"Response {response.status_code} for {method} {response.url}")
