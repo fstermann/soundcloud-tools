@@ -120,7 +120,7 @@ class Track(BaseModel):
     permalink_url: str
     playback_count: int | None
     public: bool
-    publisher_metadata: PublisherMetadata
+    publisher_metadata: PublisherMetadata | None
     purchase_title: str | None
     purchase_url: str | None
     release_date: str | None
