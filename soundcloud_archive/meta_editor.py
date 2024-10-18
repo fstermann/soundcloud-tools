@@ -212,6 +212,8 @@ def delete_file(handler: TrackHandler):
 def render_file(file: Path, root_folder: Path):
     st.write(f"### $\\;\\tiny\\textsf{{{file.parent}}}/$ {file.name}")
     handler = TrackHandler(root_folder=root_folder, file=file)
+    if not sst.get("title"):
+        copy_track_info(handler.track_info)
 
     with open(file, "rb") as f:
         st.audio(f)
@@ -285,7 +287,7 @@ def render_file(file: Path, root_folder: Path):
 
 def copy_track_info(track_info: TrackInfo):
     sst.ti_title = track_info.title
-    sst.ti_artist = track_info.artist
+    sst.ti_artist = track_info.artist_str
     sst.ti_genre = track_info.genre
     sst.ti_year = track_info.year
     sst.ti_release_date = track_info.release_date
