@@ -145,6 +145,10 @@ class Track(BaseModel):
     policy: str
     user: User
 
+    @property
+    def hq_artwork_url(self) -> str:
+        return self.artwork_url.replace("-large.", "-t500x500.")
+
 
 class Playlist(BaseModel):
     artwork_url: str | None
