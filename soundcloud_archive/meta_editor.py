@@ -361,10 +361,20 @@ def clean_artists(artists: str) -> str:
 
 
 def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> TrackInfo:
-    if st.checkbox(":material/cleaning_services: Autoclean", value=False, key="auto_clean"):
+    if st.checkbox(
+        ":material/cleaning_services: Auto-Clean",
+        value=False,
+        key="auto_clean",
+        help="Automatically cleanup Title and Artists (Removes Free DL mentions, artists in title and separates artists into a list)",
+    ):
         apply_to_sst(clean_title, "ti_title")()
         apply_to_sst(clean_artists, "ti_artist")()
-    if st.checkbox(":material/arrow_upward: Autotitelize", value=False, key="auto_titelize"):
+    if st.checkbox(
+        ":material/arrow_upward: Auto-Titelize",
+        value=False,
+        key="auto_titelize",
+        help="Automatically titelizes Artists and Title",
+    ):
         apply_to_sst(str.title, "ti_title")()
         apply_to_sst(str.title, "ti_artist")()
     # Title
