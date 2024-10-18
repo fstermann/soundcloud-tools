@@ -31,7 +31,7 @@ class User(BaseModel):
     followers_count: int
     full_name: str
     id: int
-    kind: str
+    kind: Literal["user"]
     last_modified: datetime
     last_name: str
     permalink: str
@@ -108,10 +108,10 @@ class Track(BaseModel):
     duration: int
     full_duration: int
     embeddable_by: str
-    genre: str
+    genre: str | None = None
     has_downloads_left: bool
     id: int
-    kind: str
+    kind: Literal["track"]
     label_name: str | None
     last_modified: datetime
     license: str
@@ -152,9 +152,9 @@ class Playlist(BaseModel):
     description: str | None
     duration: int
     embeddable_by: str
-    genre: str
+    genre: str | None = None
     id: int
-    kind: str
+    kind: Literal["playlist"]
     label_name: str | None
     last_modified: datetime
     license: str
@@ -237,3 +237,13 @@ class GetStream(BaseModel):
     collection: list[Collection]
     next_href: str | None
     query_urn: str | None
+
+
+SearchCollection = Annotated[Playlist | Track | User, Field(discriminator="kind")]
+
+
+class SearchResponse(BaseModel):
+    collection: list[SearchCollection]
+    next_href: str | None = None
+    query_urn: str | None = None
+    total_results: int

@@ -5,10 +5,19 @@ from typing import Any, Callable
 
 import devtools
 import requests
+import streamlit as st
 from pydantic import BaseModel, Field, TypeAdapter
 from starlette.routing import compile_path
 
-from soundcloud_archive.models import Collection, CollectionType, CreatePlaylist, GetStream, PlaylistCreate, TrackID
+from soundcloud_archive.models import (
+    Collection,
+    CollectionType,
+    CreatePlaylist,
+    GetStream,
+    PlaylistCreate,
+    SearchResponse,
+    TrackID,
+)
 from soundcloud_archive.settings import get_settings
 from soundcloud_archive.utils import (
     Weekday,
@@ -94,7 +103,7 @@ class Client:
             "app_version": "1725276048",
             "app_locale": "en",
         }
-        self.proxies = {"https://": "https://" + get_settings().proxy}
+        self.proxies = {"https://": "https://" + get_settings().proxy} if get_settings().proxy else {}
 
     def json_dump(self, data: Any):
         return data if not isinstance(data, BaseModel) else data.model_dump(mode="json")
@@ -108,6 +117,9 @@ class Client:
         response = requests.request(method, url, **kwargs)
         logger.info(f"Response {response.status_code} for {method} {response.url}")
         return response
+
+    def _make_request(self, *arg, **kwargs):
+        return self.make_request(*arg, **kwargs)
 
     def make_url(self, path: str, **path_params: str) -> str:
         return f"{self.base_url}/{path.format(**path_params)}"
@@ -139,6 +151,15 @@ class Client:
         offset: int = 0,
         linked_partitioning: bool = True,
     ): ...
+
+    @route("GET", "search", response_model=SearchResponse)
+    async def search(self, q: str, limit: int = 20, offset: int = 0): ...
+
+
+class StreamlitClient(Client):
+    @st.cache_data
+    def _make_request(self, *arg, **kwargs):
+        return self.make_request(*arg, **kwargs)
 
 
 async def get_collections(
