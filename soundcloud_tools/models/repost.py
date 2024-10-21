@@ -30,6 +30,6 @@ Repost = Annotated[TrackRepost | PlaylistRepost, Field(discriminator="type")]
 
 
 class Reposts(BaseModel):
-    collection: list[TrackRepost | PlaylistRepost]
+    collection: list[Repost]
     next_href: str | None = None
     query_urn: str | None = None
