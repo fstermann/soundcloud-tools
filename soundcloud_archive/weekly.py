@@ -4,14 +4,10 @@ from datetime import datetime
 import devtools
 
 from soundcloud_archive.client import Client
-from soundcloud_archive.models import (
-    Collection,
-    CollectionType,
-    CreatePlaylist,
-    GetStream,
-    PlaylistCreate,
-    TrackID,
-)
+from soundcloud_archive.models.playlist import PlaylistCreate
+from soundcloud_archive.models.request import PlaylistCreateRequest
+from soundcloud_archive.models.stream import Stream, StreamItem, StreamItemType
+from soundcloud_archive.models.track import TrackID
 from soundcloud_archive.utils import Weekday, get_scheduled_time, get_week_of_month
 
 logger = logging.getLogger(__name__)
@@ -24,7 +20,7 @@ async def get_collections(
     user_urn = f"soundcloud:users:{user_id}"
     all_reposts = []
     while True:
-        response: GetStream = await client.get_stream(user_urn=user_urn, offset=offset)
+        response: Stream = await client.get_stream(user_urn=user_urn, offset=offset)
         reposts = [
             c
             for c in response.collection
@@ -38,7 +34,7 @@ async def get_collections(
     return all_reposts
 
 
-def get_track_ids_from_collections(collections: list[Collection], types: list[CollectionType]) -> set[int]:
+def get_track_ids_from_collections(collections: list[StreamItem], types: list[StreamItemType]) -> set[int]:
     track_ids = set()
     for c in collections:
         if c.type not in types:
@@ -51,7 +47,7 @@ def get_track_ids_from_collections(collections: list[Collection], types: list[Co
 
 
 async def get_tracks_ids_in_timespan(
-    client: Client, user_id: int, start: datetime, end: datetime, types: list[CollectionType]
+    client: Client, user_id: int, start: datetime, end: datetime, types: list[StreamItemType]
 ):
     collections = await get_collections(client, user_id=user_id, start=start, end=end)
     track_ids = get_track_ids_from_collections(collections, types=types)
@@ -59,7 +55,7 @@ async def get_tracks_ids_in_timespan(
     return track_ids
 
 
-async def create_weekly_favorite_playlist(client: Client, user_id: int, types: list[CollectionType], week: int = 0):
+async def create_weekly_favorite_playlist(client: Client, user_id: int, types: list[StreamItemType], week: int = 0):
     logger.info(f"Creating weekly favorite playlist for {week = } and {types = }")
     start = get_scheduled_time(Weekday.SUNDAY, weeks=week - 1)
     end = get_scheduled_time(Weekday.SUNDAY, weeks=week)
@@ -68,7 +64,7 @@ async def create_weekly_favorite_playlist(client: Client, user_id: int, types: l
     track_ids = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
 
     # Create playlist from track_ids
-    playlist = CreatePlaylist(
+    playlist = PlaylistCreateRequest(
         playlist=PlaylistCreate(
             title=f"Weekly Favorites {month.upper()}/{week_of_month}",
             description=(

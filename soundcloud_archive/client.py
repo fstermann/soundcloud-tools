@@ -8,13 +8,8 @@ import streamlit as st
 from pydantic import BaseModel, Field, TypeAdapter
 from starlette.routing import compile_path
 
-from soundcloud_archive.models import (
-    CreatePlaylist,
-    GetLikesResponse,
-    GetRepostsResponse,
-    GetStream,
-    SearchResponse,
-)
+from soundcloud_archive import models as scm
+from soundcloud_archive.models.request import PlaylistCreateRequest
 from soundcloud_archive.settings import get_settings
 from soundcloud_archive.utils import generate_random_user_agent, get_default_kwargs
 
@@ -123,12 +118,12 @@ class Client:
         return offset and offset[0]
 
     @route("POST", "playlists")
-    async def post_playlist(self, data: CreatePlaylist): ...
+    async def post_playlist(self, data: PlaylistCreateRequest): ...
 
     @route("GET", "playlists/{playlist_id}")
     async def get_playlist(self, playlist_id: int, show_tracks: bool = True): ...
 
-    @route("GET", "users/{user_id}/likes", response_model=GetLikesResponse)
+    @route("GET", "users/{user_id}/likes", response_model=scm.Likes)
     async def get_user_likes(
         self,
         user_id: int,
@@ -137,7 +132,7 @@ class Client:
         linked_partitioning: bool = True,
     ): ...
 
-    @route("GET", "stream/users/{user_id}/reposts", response_model=GetRepostsResponse)
+    @route("GET", "stream/users/{user_id}/reposts", response_model=scm.Reposts)
     async def get_user_reposts(
         self,
         user_id: int,
@@ -155,7 +150,7 @@ class Client:
     @route("GET", "tracks/{track_id}")
     async def get_track(self, track_id: int): ...
 
-    @route("GET", "stream", response_model=GetStream)
+    @route("GET", "stream", response_model=scm.Stream)
     async def get_stream(
         self,
         user_urn: str,
@@ -165,7 +160,7 @@ class Client:
         linked_partitioning: bool = True,
     ): ...
 
-    @route("GET", "search", response_model=SearchResponse)
+    @route("GET", "search", response_model=scm.Search)
     async def search(self, q: str, limit: int = 20, offset: int = 0): ...
 
 
