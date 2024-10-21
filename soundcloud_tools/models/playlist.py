@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
+
 from soundcloud_tools.models.track import Track, TrackID, TrackSlim
 from soundcloud_tools.models.user import User
 

@@ -6,11 +6,12 @@ from typing import Any, Callable
 import requests
 import streamlit as st
 from pydantic import BaseModel, Field, TypeAdapter
+from starlette.routing import compile_path
+
 from soundcloud_tools import models as scm
 from soundcloud_tools.models.request import PlaylistCreateRequest
 from soundcloud_tools.settings import get_settings
 from soundcloud_tools.utils import generate_random_user_agent, get_default_kwargs
-from starlette.routing import compile_path
 
 logger = logging.getLogger(__name__)
 

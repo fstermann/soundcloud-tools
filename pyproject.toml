@@ -32,6 +32,14 @@ line-length = 120
 [tool.ruff.lint]
 fixable = ["I"]
 extend-select = [
-    "I", # isort imports
-    "T", # no print statements
+    "I",   # isort imports
+    "T",   # no print statements
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "C90", # mccabe code complexity
+    "RUF", # Ruff-specific rules
 ]
