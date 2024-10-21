@@ -324,16 +324,14 @@ def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | 
         render_track_info(track_info)
         c1, c2 = st.columns(2)
         c1.button(
-            "",
-            icon=":material/cloud_download:",
+            ":material/cloud_download:",
             help="Copy Metadata from Soundcloud",
             use_container_width=True,
             on_click=copy_track_info,
             args=(track_info,),
         )
         c2.button(
-            "",
-            icon=":material/library_music:",
+            ":material/library_music:",
             help="Copy Artwork from Soundcloud",
             use_container_width=True,
             on_click=copy_artwork,
@@ -391,7 +389,7 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
         c2.write(f"_`{track_info.title}`_")
         col, btn_col = st.columns((9, 1))
         title = col.text_input(
-            "",
+            "Title",
             track_info.title,
             key="ti_title",
             label_visibility="collapsed",
@@ -416,7 +414,7 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
         c2.write(f"_`{track_info.artist_str}`_")
         col, btn_col = st.columns((9, 1))
         artist = col.text_input(
-            "",
+            "Artist",
             track_info.artist_str,
             key="ti_artist",
             label_visibility="collapsed",
@@ -447,7 +445,7 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
         for i, genre in enumerate(genres):
             if gcols[i].button(genre, use_container_width=True):
                 sst.ti_genre = genre
-        genre = st.text_input("", track_info.genre, key="ti_genre", label_visibility="collapsed")
+        genre = st.text_input("Genre", track_info.genre, key="ti_genre", label_visibility="collapsed")
 
     # Dates
     with st.container(border=True):
