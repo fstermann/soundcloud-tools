@@ -32,18 +32,11 @@ USER_ID=
 PROXY=
 ```
 
-## Usage
+## Tools
 
-```bash
-poetry run python soundcloud_tools.py
-```
+The following section describes the tools provided in this repository.
 
-__Options__
-
-- `--week`: The week number relative to the current week. For example, `--week=0` will download the tracks from the current week, `--week=-1` will download the tracks from the previous week, and so on.
-
-
-## MetaEditor
+### MetaEditor
 
 You can use the MetaEditor to edit the metadata of your local tracks.
 It uses the `mutagen` library to edit the metadata of the tracks.
@@ -67,7 +60,16 @@ Note that to optimize the workflow, the MetaEditor uses three folders to store t
 
 ![Meta Edtior](assets/meta-editor.png)
 
-## Workflow
+
+### Favorite Archiver
+
+```bash
+poetry run python soundcloud_tools.py
+```
+
+__Options__
+
+- `--week`: The week number relative to the current week. For example, `--week=0` will download the tracks from the current week, `--week=-1` will download the tracks from the previous week, and so on.
+
 
 In order to setup the workflow, simply add the environment variables as secrets in the GitHub repository settings. By default the workflow will run every Sunday at 08:00 AM, but this can be changed in the [`.github/workflows/run.yml`](.github/workflows/run.yml) file.
-
