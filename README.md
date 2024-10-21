@@ -30,7 +30,7 @@ PROXY=
 ## Usage
 
 ```bash
-poetry run python soundcloud_archive.py
+poetry run python soundcloud_tools.py
 ```
 
 __Options__
@@ -45,7 +45,7 @@ It uses the `mutagen` library to edit the metadata of the tracks.
 The editor offers an integrated Soundcloud search to find the correct metadata, including artwork, for your tracks.
 
 ```bash
-poetry run streamlit run soundcloud_archive/streamlit/meta_editor.py   
+poetry run streamlit run soundcloud_tools/streamlit/meta_editor.py   
 ```
 
 Note that to optimize the workflow, the MetaEditor uses three folders to store the tracks:

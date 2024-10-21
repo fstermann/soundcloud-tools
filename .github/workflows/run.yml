@@ -31,4 +31,4 @@ jobs:
           USER_ID: ${{ secrets.USER_ID }}
           PROXY: ${{ secrets.PROXY }}
         run: |
-          poetry run soundcloud_archive --week ${{ github.event.inputs.week || 0 }}
+          poetry run soundcloud_tools --week ${{ github.event.inputs.week || 0 }}

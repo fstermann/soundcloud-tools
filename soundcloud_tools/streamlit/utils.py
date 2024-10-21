@@ -1,10 +1,9 @@
 from typing import Callable
 
 import streamlit as st
+from soundcloud_tools.client import StreamlitClient
 from streamlit import session_state as sst
 from tabulate import tabulate
-
-from soundcloud_archive.client import StreamlitClient
 
 
 @st.cache_resource

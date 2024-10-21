@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-
-from soundcloud_archive.models.playlist import PlaylistCreate
+from soundcloud_tools.models.playlist import PlaylistCreate
 
 
 class PlaylistCreateRequest(BaseModel):

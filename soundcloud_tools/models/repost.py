@@ -3,10 +3,9 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-
-from soundcloud_archive.models.playlist import Playlist
-from soundcloud_archive.models.track import Track
-from soundcloud_archive.models.user import User
+from soundcloud_tools.models.playlist import Playlist
+from soundcloud_tools.models.track import Track
+from soundcloud_tools.models.user import User
 
 
 class BaseRepost(BaseModel):

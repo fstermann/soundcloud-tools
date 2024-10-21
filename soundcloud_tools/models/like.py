@@ -2,9 +2,8 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
-
-from soundcloud_archive.models.playlist import Playlist
-from soundcloud_archive.models.track import Track
+from soundcloud_tools.models.playlist import Playlist
+from soundcloud_tools.models.track import Track
 
 
 class BaseLike(BaseModel):

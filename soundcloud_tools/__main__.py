@@ -2,9 +2,9 @@ import argparse
 import asyncio
 import logging
 
-from soundcloud_archive.client import Client
-from soundcloud_archive.settings import get_settings
-from soundcloud_archive.weekly import create_weekly_favorite_playlist
+from soundcloud_tools.client import Client
+from soundcloud_tools.settings import get_settings
+from soundcloud_tools.weekly import create_weekly_favorite_playlist
 
 
 def main(week: int = 0):

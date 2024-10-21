@@ -14,10 +14,9 @@ from mutagen.id3 import APIC, ID3, TCON, TDRC, TDRL, TIT2, TPE1, ID3FileType
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
 from pydantic import BaseModel, ConfigDict, model_validator
+from soundcloud_tools.models import Track
+from soundcloud_tools.streamlit.utils import apply_to_sst, get_client, table
 from streamlit import session_state as sst
-
-from soundcloud_archive.models import Track
-from soundcloud_archive.streamlit.utils import apply_to_sst, get_client, table
 
 FILETYPE_MAP = {
     ".mp3": MP3,

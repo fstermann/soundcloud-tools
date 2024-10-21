@@ -2,12 +2,11 @@ import logging
 from datetime import datetime
 
 import devtools
-
-from soundcloud_archive.client import Client
-from soundcloud_archive.models.playlist import PlaylistCreate
-from soundcloud_archive.models.request import PlaylistCreateRequest
-from soundcloud_archive.models.stream import Stream, StreamItem, StreamItemType
-from soundcloud_archive.utils import Weekday, get_scheduled_time, get_week_of_month
+from soundcloud_tools.client import Client
+from soundcloud_tools.models.playlist import PlaylistCreate
+from soundcloud_tools.models.request import PlaylistCreateRequest
+from soundcloud_tools.models.stream import Stream, StreamItem, StreamItemType
+from soundcloud_tools.utils import Weekday, get_scheduled_time, get_week_of_month
 
 logger = logging.getLogger(__name__)
 
