@@ -4,13 +4,6 @@ import streamlit as st
 from streamlit import session_state as sst
 from tabulate import tabulate
 
-from soundcloud_tools.client import StreamlitClient
-
-
-@st.cache_resource
-def get_client():
-    return StreamlitClient()
-
 
 def apply_to_sst(func: Callable, key: str) -> Callable:
     def inner():

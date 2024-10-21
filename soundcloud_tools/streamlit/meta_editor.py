@@ -17,7 +17,8 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from streamlit import session_state as sst
 
 from soundcloud_tools.models import Track
-from soundcloud_tools.streamlit.utils import apply_to_sst, get_client, table
+from soundcloud_tools.streamlit.client import get_client
+from soundcloud_tools.streamlit.utils import apply_to_sst, table
 
 FILETYPE_MAP = {
     ".mp3": MP3,

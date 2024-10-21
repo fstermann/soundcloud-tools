@@ -4,7 +4,6 @@ import urllib.parse as urlparse
 from typing import Any, Callable
 
 import requests
-import streamlit as st
 from pydantic import BaseModel, Field, TypeAdapter
 from starlette.routing import compile_path
 
@@ -162,9 +161,3 @@ class Client:
 
     @route("GET", "search", response_model=scm.Search)
     async def search(self, q: str, limit: int = 20, offset: int = 0): ...
-
-
-class StreamlitClient(Client):
-    @st.cache_data
-    def _make_request(self, *arg, **kwargs):
-        return self.make_request(*arg, **kwargs)
