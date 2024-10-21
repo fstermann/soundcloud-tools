@@ -107,8 +107,8 @@ class Track(BaseModel):
     user: User
 
     @property
-    def hq_artwork_url(self) -> str:
-        return self.artwork_url.replace("-large.", "-t500x500.")
+    def hq_artwork_url(self) -> str | None:
+        return self.artwork_url and self.artwork_url.replace("-large.", "-t500x500.")
 
     @property
     def artist(self) -> str:

@@ -114,7 +114,7 @@ class Client:
     @staticmethod
     def get_next_offset(href: str) -> str | None:
         parsed = urlparse.urlparse(href)
-        offset = urlparse.parse_qs(parsed.query).get("offset")
+        offset = urlparse.parse_qs(parsed.query).get("offset") or None
         return offset and offset[0]
 
     @route("POST", "playlists")

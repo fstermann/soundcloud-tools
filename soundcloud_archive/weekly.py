@@ -7,7 +7,6 @@ from soundcloud_archive.client import Client
 from soundcloud_archive.models.playlist import PlaylistCreate
 from soundcloud_archive.models.request import PlaylistCreateRequest
 from soundcloud_archive.models.stream import Stream, StreamItem, StreamItemType
-from soundcloud_archive.models.track import TrackID
 from soundcloud_archive.utils import Weekday, get_scheduled_time, get_week_of_month
 
 logger = logging.getLogger(__name__)
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 async def get_collections(
     client: Client, user_id: int, start: datetime, end: datetime, exclude_own: bool = True
-) -> list[TrackID]:
+) -> list[StreamItem]:
     limit, offset = 100, 0
     user_urn = f"soundcloud:users:{user_id}"
     all_reposts = []

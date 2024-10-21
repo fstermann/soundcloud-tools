@@ -297,13 +297,13 @@ def copy_artwork(artwork_url: str):
     sst.ti_artwork_url = artwork_url
 
 
-def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo:
+def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | None:
     st.write("__:material/cloud: Soundcloud Search__")
     query = st.text_input("Search", query)
     sst.setdefault("search_result", {})
     sst.search_result[query] = asyncio.run(get_client().search(q=query))
     if not (result := sst.search_result.get(query)):
-        return
+        return None
 
     st.divider()
     track_ph = st.container(border=True)
@@ -311,7 +311,7 @@ def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo:
     tracks: list[Track] = [track for track in result.collection if track.kind == "track"]
     if not tracks:
         st.warning("No tracks found")
-        return
+        return None
 
     track = st.radio("Tracks", tracks, format_func=lambda t: f"[{t.title} - {t.user.username}]({t.permalink_url})")
 
@@ -529,7 +529,7 @@ def cover_handler(track: ID3FileType, artwork: bytes | None = None):
     c3.button(":material/refresh:", key=f"reload_{bool(artwork)}", use_container_width=True)
 
 
-def file_selector() -> Path:
+def file_selector() -> tuple[Path, Path]:
     c1, c2 = st.columns((4, 1))
 
     with c1:
