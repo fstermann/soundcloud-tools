@@ -583,7 +583,7 @@ def file_selector() -> tuple[Path, Path]:
         files,
         key="selection",
         index=sst.index,
-        on_change=wrap_on_click(lambda new_index: sst.__setitem__("index", files.index(sst.selection))),
+        on_change=wrap_on_click(lambda: sst.__setitem__("index", files.index(sst.selection))),
         label_visibility="collapsed",
         format_func=lambda f: f.name,
     )
