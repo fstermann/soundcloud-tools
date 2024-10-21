@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Annotated, Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -149,6 +150,10 @@ class Track(BaseModel):
     def hq_artwork_url(self) -> str:
         return self.artwork_url.replace("-large.", "-t500x500.")
 
+    @property
+    def artist(self) -> str:
+        return (self.publisher_metadata and self.publisher_metadata.artist) or self.user.username
+
 
 class Playlist(BaseModel):
     artwork_url: str | None
@@ -251,3 +256,44 @@ class SearchResponse(BaseModel):
     next_href: str | None = None
     query_urn: str | None = None
     total_results: int
+
+
+class Like(BaseModel):
+    created_at: datetime
+    kind: Literal["like"]
+
+
+class TrackLike(Like):
+    track: Track | None = None
+
+
+class GetLikesResponse(BaseModel):
+    collection: list[TrackLike]
+    next_href: str | None = None
+    query_urn: str | None = None
+
+
+class Repost(BaseModel):
+    uuid: UUID
+    created_at: datetime
+    caption: str | None
+    user: User
+
+
+class TrackRepost(Repost):
+    type: Literal["track-repost"]
+    track: Track
+
+
+class PlaylistRepost(Repost):
+    type: Literal["playlist-repost"]
+    playlist: Playlist
+
+
+RepostCollection = Annotated[TrackRepost | PlaylistRepost, Field(discriminator="type")]
+
+
+class GetRepostsResponse(BaseModel):
+    collection: list[TrackRepost | PlaylistRepost]
+    next_href: str | None = None
+    query_urn: str | None = None

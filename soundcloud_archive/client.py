@@ -1,31 +1,22 @@
 import json
 import logging
-from datetime import datetime
+import urllib.parse as urlparse
 from typing import Any, Callable
 
-import devtools
 import requests
 import streamlit as st
 from pydantic import BaseModel, Field, TypeAdapter
 from starlette.routing import compile_path
 
 from soundcloud_archive.models import (
-    Collection,
-    CollectionType,
     CreatePlaylist,
+    GetLikesResponse,
+    GetRepostsResponse,
     GetStream,
-    PlaylistCreate,
     SearchResponse,
-    TrackID,
 )
 from soundcloud_archive.settings import get_settings
-from soundcloud_archive.utils import (
-    Weekday,
-    generate_random_user_agent,
-    get_default_kwargs,
-    get_scheduled_time,
-    get_week_of_month,
-)
+from soundcloud_archive.utils import generate_random_user_agent, get_default_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +60,7 @@ def route(method: str, path: str, response_model: BaseModel | None = None):
             split_params = await SplitParams.from_route(client=self, endpoint=endpoint_func, path=path, **kwargs)
             url = self.make_url(path, **split_params.path_params)
             params = self.json_dump(split_params.query_params)
+            logger.info(f"Making request to {url}")
             response = await self.make_request(
                 method,
                 url,
@@ -79,7 +71,7 @@ def route(method: str, path: str, response_model: BaseModel | None = None):
             try:
                 response_data = response.json()
             except json.decoder.JSONDecodeError:
-                logger.error(f"Failed to decode response {response.text}")
+                logger.error(f"Failed to decode response (status: {response.status_code})\n{response.text}")
                 return
             if not response_model:
                 return response_data
@@ -124,14 +116,35 @@ class Client:
     def make_url(self, path: str, **path_params: str) -> str:
         return f"{self.base_url}/{path.format(**path_params)}"
 
+    @staticmethod
+    def get_next_offset(href: str) -> str | None:
+        parsed = urlparse.urlparse(href)
+        offset = urlparse.parse_qs(parsed.query).get("offset")
+        return offset and offset[0]
+
     @route("POST", "playlists")
     async def post_playlist(self, data: CreatePlaylist): ...
 
     @route("GET", "playlists/{playlist_id}")
     async def get_playlist(self, playlist_id: int, show_tracks: bool = True): ...
 
-    @route("GET", "users/{user_id}/likes/tracks")
-    async def get_user_likes(self, user_id: int): ...
+    @route("GET", "users/{user_id}/likes", response_model=GetLikesResponse)
+    async def get_user_likes(
+        self,
+        user_id: int,
+        limit: int = 100,
+        offset: int = 0,
+        linked_partitioning: bool = True,
+    ): ...
+
+    @route("GET", "stream/users/{user_id}/reposts", response_model=GetRepostsResponse)
+    async def get_user_reposts(
+        self,
+        user_id: int,
+        limit: int = 100,
+        offset: int = 0,
+        linked_partitioning: bool = True,
+    ): ...
 
     @route("GET", "users/{user_id}/followings/ids")
     async def get_user_followings_ids(self, user_id: int, limit: int = 5000, linked_partitioning: bool = True): ...
@@ -160,73 +173,3 @@ class StreamlitClient(Client):
     @st.cache_data
     def _make_request(self, *arg, **kwargs):
         return self.make_request(*arg, **kwargs)
-
-
-async def get_collections(
-    client: Client, user_id: int, start: datetime, end: datetime, exclude_own: bool = True
-) -> list[TrackID]:
-    limit, offset = 100, 0
-    user_urn = f"soundcloud:users:{user_id}"
-    all_reposts = []
-    while True:
-        response: GetStream = await client.get_stream(user_urn=user_urn, offset=offset)
-        reposts = [
-            c
-            for c in response.collection
-            if start < c.created_at < end and (c.user.id != user_id if exclude_own else True)
-        ]
-        logger.info(f"Found {len(reposts)} valid reposts")
-        all_reposts += reposts
-        if not reposts:
-            break
-        offset += limit
-    return all_reposts
-
-
-def get_track_ids_from_collections(collections: list[Collection], types: list[CollectionType]) -> set[int]:
-    track_ids = set()
-    for c in collections:
-        if c.type not in types:
-            continue
-        if c.type.startswith("playlist"):
-            track_ids |= {t.id for t in c.playlist.tracks}
-        if c.type.startswith("track"):
-            track_ids.add(c.track.id)
-    return track_ids
-
-
-async def get_tracks_ids_in_timespan(
-    client: Client, user_id: int, start: datetime, end: datetime, types: list[CollectionType]
-):
-    collections = await get_collections(client, user_id=user_id, start=start, end=end)
-    track_ids = get_track_ids_from_collections(collections, types=types)
-    logger.info(f"Found {len(track_ids)} tracks")
-    return track_ids
-
-
-async def create_weekly_favorite_playlist(client: Client, user_id: int, types: list[CollectionType], week: int = 0):
-    logger.info(f"Creating weekly favorite playlist for {week = } and {types = }")
-    start = get_scheduled_time(Weekday.SUNDAY, weeks=week - 1)
-    end = get_scheduled_time(Weekday.SUNDAY, weeks=week)
-    month, week_of_month = start.strftime("%b"), get_week_of_month(start)
-
-    track_ids = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
-
-    # Create playlist from track_ids
-    playlist = CreatePlaylist(
-        playlist=PlaylistCreate(
-            title=f"Weekly Favorites {month.upper()}/{week_of_month}",
-            description=(
-                f"Autogenerated set of liked and reposted tracks from my favorite artists.\n"
-                f"Week {week_of_month} of {month} "
-                f"({start.date()} - {end.date()}, CW {start.isocalendar().week})"
-            ),
-            tracks=list(track_ids),
-            sharing="private",
-            tag_list=f"soundcloud-archive,weekly-favorites,{month.upper()}/{week_of_month},CW{start.isocalendar().week}",
-        )
-    )
-    request = devtools.pformat(playlist.model_dump(exclude={"playlist": {"tracks"}}))
-    logger.info(f"Creating playlist {request} with {len(track_ids)} tracks")
-    await client.post_playlist(data=playlist)
-    return track_ids
