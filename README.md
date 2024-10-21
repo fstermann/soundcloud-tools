@@ -1,11 +1,16 @@
-# soundcloud-archive
+# soundcloud-tools ☁️
 
+This repository provides a collection of tools to interact with the SoundCloud API.
 
-## Description
+---
 
-This repository provides a workflow to collect all liked, posted and reposted tracks and playlists of a users favorited artists for the past week.
+This includes a __workflow__ to collect all __liked, posted and reposted tracks__ and playlists of a users __favorited artists__ for the past week.
 
 The worlkflow is meant to be run weekly, and will store the tracks and playlists in a new playlist on the users SoundCloud account.
+
+---
+
+Another tool is the __MetaEditor__, which allows you to edit the metadata of your local tracks, including the artwork. The editor offers an integrated Soundcloud search to find the correct metadata for your tracks.
 
 ## Installation
 
@@ -54,6 +59,13 @@ Note that to optimize the workflow, the MetaEditor uses three folders to store t
 - `root_folder/cleaned`: This is the folder where the MP3 tracks with the edited metadata will be stored.
 - `root_folder/archive`: This is the folder where the original tracks will be stored after finishing the editing process. If the tracks are already in MP3 format, they will only be copied to the `cleaned` folder.
 
+---
+
+![File Selection](assets/file-selection.png)
+
+![Folder Selection](assets/file-overview.png)
+
+![Meta Edtior](assets/meta-editor.png)
 
 ## Workflow
 
