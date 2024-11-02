@@ -19,6 +19,7 @@ from streamlit import session_state as sst
 from soundcloud_tools.models import Track
 from soundcloud_tools.streamlit.client import get_client
 from soundcloud_tools.streamlit.utils import apply_to_sst, table
+from soundcloud_tools.utils import convert_to_int
 
 FILETYPE_MAP = {
     ".mp3": MP3,
@@ -114,7 +115,7 @@ class TrackHandler(BaseModel):
             title=str(self.track.tags.get("TIT2", "")),
             artist=str(self.track.tags.get("TPE1", "")).split("\u0000"),
             genre=str(self.track.tags.get("TCON", "")),
-            year=str(self.track.tags.get("TDRC", 0)),
+            year=convert_to_int(str(self.track.tags.get("TDRC", 0)), default=0),
             release_date=str(self.track.tags.get("TDRL", "")),
             artwork=self.get_single_cover(raise_error=False),
         )
@@ -213,7 +214,7 @@ def delete_file(handler: TrackHandler):
 def render_file(file: Path, root_folder: Path):
     st.write(f"### $\\;\\tiny\\textsf{{{file.parent}}}/$ {file.name}")
     handler = TrackHandler(root_folder=root_folder, file=file)
-    if not sst.get("title"):
+    if not sst.get("ti_title"):
         copy_track_info(handler.track_info)
 
     with open(file, "rb") as f:
@@ -262,22 +263,22 @@ def render_file(file: Path, root_folder: Path):
     st.divider()
 
     # Metadata
-    c1, c2 = st.columns((2, 1))
-    with c2.container(border=True):
+    with st.sidebar.container(border=True):
         render_soundcloud_search(remove_free_dl(handler.file.stem))
 
-    with c1:
-        st.subheader(":material/description: Edit Track Metadata")
-        modified_info = modify_track_info(handler.track_info, has_artwork=bool(handler.covers))
+    st.subheader(":material/description: Edit Track Metadata")
+    modified_info = modify_track_info(handler.track_info, has_artwork=bool(handler.covers))
+    with st.container(border=True):
+        st.write("__Modified__")
         render_track_info(modified_info)
         cols = st.columns(2)
-        cols[0].write(f"_Generated Filename:_ `{modified_info.filename}`")
+    cols[0].write(f"_Generated Filename:_ `{modified_info.filename}`")
 
-        if cols[1].button(":material/save:", help="Save Metadata", use_container_width=True, key="save_file"):
-            handler.add_info(modified_info, artwork=modified_info.artwork)
-            sst.new_track_name = handler.rename(modified_info.filename)
-            st.success("Saved Successfully")
-            st.rerun()
+    if cols[1].button(":material/save:", help="Save Metadata", use_container_width=True, key="save_file"):
+        handler.add_info(modified_info, artwork=modified_info.artwork)
+        sst.new_track_name = handler.rename(modified_info.filename)
+        st.success("Saved Successfully")
+        st.rerun()
 
     with st.expander("Cover Handler"):
         cover_handler(handler.track, artwork=modified_info.artwork)
@@ -321,7 +322,7 @@ def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | 
 
     track_info = TrackInfo.from_sc_track(track)
     with track_ph:
-        render_track_info(track_info)
+        render_track_info(track_info, vertical=True)
         c1, c2 = st.columns(2)
         c1.button(
             ":material/cloud_download:",
@@ -362,6 +363,10 @@ def clean_artists(artists: str) -> str:
     return artists
 
 
+def titelize(string: str) -> str:
+    return string.title().replace("Dj", "DJ")
+
+
 def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> TrackInfo:
     if st.checkbox(
         ":material/cleaning_services: Auto-Clean",
@@ -380,14 +385,17 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
         key="auto_titelize",
         help="Automatically titelizes Artists and Title",
     ):
-        apply_to_sst(str.title, "ti_title")()
-        apply_to_sst(str.title, "ti_artist")()
+        apply_to_sst(titelize, "ti_title")()
+        apply_to_sst(titelize, "ti_artist")()
+
+    title_col, artist_col = st.columns(2)
     # Title
-    with st.container(border=True):
+    with title_col.container(border=True):
         c1, c2 = st.columns(2)
         c1.write("__Title__")
         c2.write(f"_`{track_info.title}`_")
         col, btn_col = st.columns((9, 1))
+        st.write(sst.ti_title)
         title = col.text_input(
             "Title",
             track_info.title,
@@ -404,11 +412,11 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
             ":material/arrow_upward:",
             help="Titelize",
             key="titelize_title",
-            on_click=apply_to_sst(str.title, "ti_title"),
+            on_click=apply_to_sst(titelize, "ti_title"),
         )
 
     # Artists
-    with st.container(border=True):
+    with artist_col.container(border=True):
         c1, c2 = st.columns(2)
         c1.write("__Artists__")
         c2.write(f"_`{track_info.artist_str}`_")
@@ -429,7 +437,7 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
             ":material/arrow_upward:",
             help="Titelize",
             key="titelize_artist",
-            on_click=apply_to_sst(str.title, "ti_artist"),
+            on_click=apply_to_sst(titelize, "ti_artist"),
         )
 
         artists = [a.strip() for a in artist.split(",")]
@@ -437,8 +445,9 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
             artists = artists[0]
         st.text(artists)
 
+    artork_col, genre_col, date_col = st.columns(3)
     # Genre
-    with st.container(border=True):
+    with genre_col.container(border=True):
         st.write("__Genre__")
         gcols = st.columns(3)
         genres = ["Trance", "Hardtrance", "House"]
@@ -448,13 +457,13 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
         genre = st.text_input("Genre", track_info.genre, key="ti_genre", label_visibility="collapsed")
 
     # Dates
-    with st.container(border=True):
+    with date_col.container(border=True):
         st.write("__Dates__")
         year = st.number_input("Year", track_info.year, key="ti_year")
         release_date = st.text_input("Release Date", track_info.release_date, key="ti_release_date")
 
     # Artwork
-    with st.container(border=True):
+    with artork_col.container(border=True):
         st.write("__Artwork__")
         c1, c2 = st.columns((4, 1))
         artwork_url = c1.text_input("Artwork URL", track_info.artwork_url, key="ti_artwork_url")
@@ -475,8 +484,9 @@ def modify_track_info(track_info: TrackInfo, has_artwork: bool = False) -> Track
     )
 
 
-def render_track_info(track_info: TrackInfo):
-    c1, c2 = st.columns(2)
+def render_track_info(track_info: TrackInfo, vertical: bool = False):
+    c1, c2 = (st.container(), st.container()) if vertical else st.columns(2)
+
     with c1:
         st.write("__Metadata__")
         data = track_info.model_dump(exclude={"artwork", "artwork_url"}).items()
@@ -561,7 +571,7 @@ def file_selector() -> tuple[Path, Path]:
 
     st.subheader(":material/playlist_play: File Selection")
 
-    c1, c2, c3 = st.columns((1, 2, 1))
+    c1, c2 = st.columns(2)
 
     def wrap_on_click(func: Callable):
         def wrapper():
@@ -576,7 +586,7 @@ def file_selector() -> tuple[Path, Path]:
         on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index - 1)),
         use_container_width=True,
     )
-    c2.selectbox(
+    st.selectbox(
         "select",
         files,
         key="selection",
@@ -585,7 +595,7 @@ def file_selector() -> tuple[Path, Path]:
         label_visibility="collapsed",
         format_func=lambda f: f.name,
     )
-    c3.button(
+    c2.button(
         "Next :material/skip_next:",
         key="next",
         on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index + 1)),
@@ -606,9 +616,10 @@ def main():
     st.header(":material/database: MetaEditor")
     st.write("Edit track metadata with integrated Soundcloud search and export to 320kb/s mp3 files.")
     st.divider()
-    st.subheader(":material/folder: Folder Selection")
-    file, root_folder = file_selector()
-    st.divider()
+    with st.sidebar:
+        st.subheader(":material/folder: Folder Selection")
+        file, root_folder = file_selector()
+        st.divider()
     render_file(file, root_folder)
 
 

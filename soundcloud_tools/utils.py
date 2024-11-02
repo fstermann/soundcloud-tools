@@ -2,6 +2,7 @@ import inspect
 from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from math import ceil
+from typing import Any
 
 from fake_useragent import UserAgent
 
@@ -39,3 +40,10 @@ def get_default_kwargs(func):
 
 def generate_random_user_agent() -> str:
     return UserAgent().random
+
+
+def convert_to_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
