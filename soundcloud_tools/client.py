@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import urllib.parse as urlparse
@@ -161,3 +162,21 @@ class Client:
 
     @route("GET", "search", response_model=scm.Search)
     async def search(self, q: str, limit: int = 20, offset: int = 0): ...
+
+
+def fetch_collection_response(endpoint: Callable, limit: int = 20, **kwargs):
+    offset = 0
+    items = []
+    while True:
+        try:
+            response = asyncio.run(endpoint(**kwargs, limit=limit, offset=offset))
+            items.extend(response.collection)
+            if not response.next_href:
+                break
+            offset = Client.get_next_offset(response.next_href)
+            logger.info("Using next offset", offset)
+        except Exception as e:
+            logger.error(e)
+            raise e
+
+    return items
