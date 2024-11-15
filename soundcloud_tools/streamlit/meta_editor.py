@@ -1,5 +1,6 @@
 import asyncio
 import re
+import urllib.parse
 from collections import Counter
 from copy import copy
 from pathlib import Path
@@ -18,7 +19,7 @@ from streamlit import session_state as sst
 
 from soundcloud_tools.models import Track
 from soundcloud_tools.streamlit.client import get_client
-from soundcloud_tools.streamlit.utils import apply_to_sst, table
+from soundcloud_tools.streamlit.utils import apply_to_sst, generate_css, table
 from soundcloud_tools.utils import convert_to_int
 
 FILETYPE_MAP = {
@@ -302,6 +303,48 @@ def copy_artwork(artwork_url: str):
     sst.ti_artwork_url = artwork_url
 
 
+def render_embedded_track(track: Track):
+    options = {
+        "url": f"https://api.soundcloud.com/tracks/{track.id}",
+        "color": "#ff5500",
+        "auto_play": "false",
+        "hide_related": "false",
+        "show_comments": "true",
+        "show_user": "true",
+        "show_reposts": "false",
+        "show_teaser": "true",
+        "visual": "true",
+    }
+    src_url = f"https://w.soundcloud.com/player/?{urllib.parse.urlencode(options)}"
+    div_css = generate_css(
+        font_size="10px",
+        color="#cccccc",
+        line_break="anywhere",
+        word_break="normal",
+        overflow="hidden",
+        white_space="nowrap",
+        text_overflow="ellipsis",
+        font_family="Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif",
+        font_weight="100",
+    )
+    link_css = generate_css(
+        color="#cccccc",
+        text_decoration="none",
+    )
+
+    st.write(
+        f"""\
+<iframe width="100%" height="300" scrolling="no" frameborder="no" allow="autoplay" src="{src_url}"></iframe>
+<div style="{div_css}">
+<a href="{track.user.permalink_url}" title="{track.user.full_name}" target="_blank" style="{link_css}">\
+{track.user.full_name}</a>
+ ·
+<a href="{track.permalink_url}" title="{track.title}" target="_blank" style="{link_css}">{track.title}</a>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
 def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | None:
     st.write("__:material/cloud: Soundcloud Search__")
     query = st.text_input("Search", query)
@@ -324,7 +367,7 @@ def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | 
 
     track_info = TrackInfo.from_sc_track(track)
     with track_ph:
-        render_track_info(track_info, vertical=True)
+        render_embedded_track(track)
         c1, c2 = st.columns(2)
         c1.button(
             ":material/cloud_download:",
