@@ -615,7 +615,7 @@ def modify_track_info(
 
 
 def preparte_table_data(data: dict):
-    data = [("<b>" + k.replace("_", " ").title() + "</b>", v) for k, v in data.items()]
+    data = [("<b>" + k.replace("_", " ").title() + "</b>", v or "⚠️") for k, v in data.items()]
     table(data)
 
 
