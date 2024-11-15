@@ -69,7 +69,7 @@ class TrackInfo(BaseModel):
         return cls(
             title=track.title,
             artist=artists,
-            genre=track.genre,
+            genre=track.genre or "",
             year=track.display_date.year,
             release_date=track.display_date.strftime("%Y-%m-%d"),
             artwork_url=track.hq_artwork_url,
