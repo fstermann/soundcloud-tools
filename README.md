@@ -64,7 +64,7 @@ Note that to optimize the workflow, the MetaEditor uses three folders to store t
 ### Favorite Archiver
 
 ```bash
-poetry run python soundcloud_tools.py
+poetry run python soundcloud_tools
 ```
 
 __Options__
