@@ -221,47 +221,6 @@ def render_file(file: Path, root_folder: Path):
     with open(file, "rb") as f:
         st.audio(f)
 
-    c1, c2 = st.columns((1, 9))
-
-    with c1:
-        if st.button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
-            delete_file(handler)
-
-        if handler.track_info.filename != handler.file.stem:
-            if st.button("Rename File", key="rename", use_container_width=True):
-                st.success("Renamed Successfully")
-                sst.new_track_name = handler.rename(handler.track_info.filename)
-                st.rerun()
-            st.warning(f"Filename does not match track info, rename to '{handler.track_info.filename}'")
-
-        if handler.mp3_file.exists():
-            st.warning("File already exists in export folder")
-
-        if st.button(
-            "Finalize :material/done_all:",
-            help=(
-                f"Track has {len(handler.covers)} covers, "
-                f"Metadata {'' if handler.track_info.complete else 'not '}complete.\n"
-                "Export to 320kb/s mp3 file."
-            ),
-            disabled=len(handler.covers) != 1 or not handler.track_info.complete,
-            use_container_width=True,
-        ):
-            with st.spinner("Finalizing"):
-                match handler.file.suffix:
-                    case ".mp3":
-                        handler.move_to_cleaned()
-                    case _:
-                        handler.convert_to_mp3()
-                        handler.add_mp3_info()
-                        handler.archive()
-
-            st.success("Finalized Successfully")
-            reset_track_info_sst()
-            st.rerun()
-    with c2.container(border=True):
-        render_track_info(handler.track_info)
-
     st.divider()
 
     # Metadata
@@ -271,7 +230,7 @@ def render_file(file: Path, root_folder: Path):
     c1, c2 = st.columns((2, 8))
     with c1:
         st.subheader(":material/description: Edit Track Metadata")
-        render_auto_checkboxes(handler.track_info, sc_track_info)
+        render_auto_checkboxes(handler, sc_track_info)
     modified_info = modify_track_info(handler.track_info, has_artwork=bool(handler.covers), sc_track_info=sc_track_info)
     with c2.container(border=True):
         cc1, cc2 = st.columns((1, 9))
@@ -281,7 +240,7 @@ def render_file(file: Path, root_folder: Path):
             sst.new_track_name = handler.rename(modified_info.filename)
             st.success("Saved Successfully")
             st.rerun()
-        render_track_info(modified_info)
+        render_track_info(handler.track_info)
 
     with st.expander("Cover Handler"):
         cover_handler(handler.track, artwork=modified_info.artwork)
@@ -412,7 +371,11 @@ def titelize(string: str) -> str:
     return string.title().replace("Dj", "DJ")
 
 
-def render_auto_checkboxes(track_info: TrackInfo, sc_track_info: TrackInfo):
+def changed_string(old: str, new: str) -> bool:
+    return " ⚠️ " if old != new else ""
+
+
+def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):
     if st.checkbox(
         ":material/cleaning_services: Auto-Clean",
         value=False,
@@ -438,16 +401,53 @@ def render_auto_checkboxes(track_info: TrackInfo, sc_track_info: TrackInfo):
         key="auto_copy_artwork",
         help="Automatically copy artwork if not present",
     ):
-        if not track_info.artwork and sc_track_info:
+        if not handler.track_info.artwork and sc_track_info:
             copy_artwork(sc_track_info.artwork_url)
-    st.button(
-        ":material/cloud_download: Copy Metadata",
+    cols = st.columns(3)
+    cols[0].button(
+        ":material/cloud_download:",
         help="Copy complete metadata from Soundcloud",
         key="copy_metadata",
         on_click=copy_track_info,
         args=(sc_track_info,),
         disabled=sc_track_info is None,
+        use_container_width=True,
     )
+    with cols[1]:
+        if st.button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
+            delete_file(handler)
+
+        if handler.track_info.filename != handler.file.stem:
+            if st.button("Rename File", key="rename", use_container_width=True):
+                st.success("Renamed Successfully")
+                sst.new_track_name = handler.rename(handler.track_info.filename)
+                st.rerun()
+            st.warning(f"Filename does not match track info, rename to '{handler.track_info.filename}'")
+
+        if handler.mp3_file.exists():
+            st.warning("File already exists in export folder")
+    if cols[2].button(
+        ":material/done_all:",
+        help=(
+            f"Track has {len(handler.covers)} covers, "
+            f"Metadata {'' if handler.track_info.complete else 'not '}complete.\n"
+            "Export to 320kb/s mp3 file."
+        ),
+        disabled=len(handler.covers) != 1 or not handler.track_info.complete,
+        use_container_width=True,
+    ):
+        with st.spinner("Finalizing"):
+            match handler.file.suffix:
+                case ".mp3":
+                    handler.move_to_cleaned()
+                case _:
+                    handler.convert_to_mp3()
+                    handler.add_mp3_info()
+                    handler.archive()
+
+        st.success("Finalized Successfully")
+        reset_track_info_sst()
+        st.rerun()
 
 
 def bold(text: str) -> str:
@@ -463,7 +463,7 @@ def modify_track_info(
     # Title
     with title_col.container(border=True):
         c1, c2 = st.columns((1, 9))
-        c2.write("__Title__")
+        c2.write(f"__Title__{changed_string(track_info.title, sst.ti_title)}")
         c2.caption(f"Old {bold(track_info.title) or '`None`'}")
         c1.button(
             ":material/cloud_download:",
@@ -498,7 +498,7 @@ def modify_track_info(
     # Artists
     with artist_col.container(border=True):
         c1, c2 = st.columns((1, 9))
-        c2.write("__Artists__")
+        c2.write(f"__Artists__{changed_string(track_info.artist_str, sst.ti_artist)}")
         c2.caption(f"Old {bold(track_info.artist_str) or '`None`'}")
         c1.button(
             ":material/cloud_download:",
@@ -566,7 +566,7 @@ def modify_track_info(
 
     # Genre
     with genre_col.container(border=True):
-        st.write("__Genre__")
+        st.write(f"__Genre__{changed_string(track_info.genre, sst.ti_genre)}")
         gcols = st.columns(3)
         genres = ["Trance", "Hardtrance", "House"]
         for i, genre in enumerate(genres):
@@ -589,8 +589,16 @@ def modify_track_info(
             use_container_width=True,
             disabled=sc_track_info is None,
         )
-        year = st.number_input("Year", track_info.year, key="ti_year")
-        release_date = st.text_input("Release Date", track_info.release_date, key="ti_release_date")
+        year = st.number_input(
+            f"Year{changed_string(track_info.year, sst.ti_year)}",
+            track_info.year,
+            key="ti_year",
+        )
+        release_date = st.text_input(
+            f"Release Date{changed_string(track_info.release_date, sst.ti_release_date)}",
+            track_info.release_date,
+            key="ti_release_date",
+        )
 
     return TrackInfo(
         title=title,
