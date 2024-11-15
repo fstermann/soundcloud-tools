@@ -417,15 +417,19 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):
         if st.button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
             delete_file(handler)
 
-        if handler.track_info.filename != handler.file.stem:
-            if st.button("Rename File", key="rename", use_container_width=True):
-                st.success("Renamed Successfully")
-                sst.new_track_name = handler.rename(handler.track_info.filename)
-                st.rerun()
-            st.warning(f"Filename does not match track info, rename to '{handler.track_info.filename}'")
+    if handler.track_info.filename != handler.file.stem:
+        if st.button(
+            "Rename File",
+            key="rename",
+            use_container_width=True,
+            help=f"Filename does not match track info, rename to '{handler.track_info.filename}'",
+        ):
+            st.success("Renamed Successfully")
+            sst.new_track_name = handler.rename(handler.track_info.filename)
+            st.rerun()
 
-        if handler.mp3_file.exists():
-            st.warning("File already exists in export folder")
+    if handler.mp3_file.exists():
+        st.warning("File already exists in export folder")
     if cols[2].button(
         ":material/done_all:",
         help=(
