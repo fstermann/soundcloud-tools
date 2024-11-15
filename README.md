@@ -54,11 +54,14 @@ Note that to optimize the workflow, the MetaEditor uses three folders to store t
 
 ---
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/meta-editor.png-dark">
-  <source media="(prefers-color-scheme: light)" srcset="assets/meta-editor-light.png">
-  <img alt="Meta Editor" src="assets/meta-editor-dark.png">
-</picture>
+![Meta Editor](assets/meta-editor-dark.png)
+
+<details>
+<summary>Light Mode</summary>
+
+![Meta Editor](assets/meta-editor-light.png)
+
+</details>
 
 ### Favorite Archiver
 
