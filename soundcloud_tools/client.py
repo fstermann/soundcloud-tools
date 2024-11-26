@@ -131,6 +131,15 @@ class Client:
         offset: int = 0,
         linked_partitioning: bool = True,
     ): ...
+    @route("GET", "users/{user_id}/comments", response_model=scm.Comments)
+    async def get_user_comments(
+        self,
+        user_id: int,
+        limit: int = 100,
+        offset: int = 0,
+        linked_partitioning: bool = True,
+        threaded: int = 0,
+    ): ...
 
     @route("GET", "stream/users/{user_id}/reposts", response_model=scm.Reposts)
     async def get_user_reposts(
@@ -141,7 +150,7 @@ class Client:
         linked_partitioning: bool = True,
     ): ...
 
-    @route("GET", "users/{user_id}/followings/ids")
+    @route("GET", "users/{user_id}/followings/ids", response_model=scm.Followings)
     async def get_user_followings_ids(self, user_id: int, limit: int = 5000, linked_partitioning: bool = True): ...
 
     @route("GET", "users/{user_id}/followers/ids")
