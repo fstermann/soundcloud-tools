@@ -22,3 +22,7 @@ def table(data):
         .replace("<tr>", f'<tr style="{_css}">')
     )
     st.write(tbl, unsafe_allow_html=True)
+
+
+def generate_css(**kwargs):
+    return ";".join(f"{k.replace('_', '-')}:{v}" for k, v in kwargs.items())
