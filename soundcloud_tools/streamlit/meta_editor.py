@@ -142,7 +142,8 @@ class TrackHandler(BaseModel):
     def move_to_cleaned(self):
         if not self.cleaned_folder.exists():
             self.cleaned_folder.mkdir(parents=True)
-        self.file.rename(self.cleaned_folder / self.file.name)
+        safe_name = self.file.name.replace("/", "-")
+        self.file.rename(self.cleaned_folder / safe_name)
 
     def update_release_date(self, release_date: str):
         track = self.track
