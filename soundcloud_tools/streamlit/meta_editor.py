@@ -307,6 +307,8 @@ def render_embedded_track(track: Track):
 
 def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | None:
     st.write("__:material/cloud: Soundcloud Search__")
+    if not st.toggle("Enable", value=True):
+        return None
     query = st.text_input("Search", query)
     sst.setdefault("search_result", {})
     sst.search_result[query] = asyncio.run(get_client().search(q=query))
