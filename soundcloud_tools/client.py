@@ -163,6 +163,7 @@ class Client:
     async def get_stream(
         self,
         user_urn: str,
+        sc_a_id: str = get_settings().sc_a_id,
         promoted_playlist: bool = True,
         limit: int = 100,
         offset: int = 0,

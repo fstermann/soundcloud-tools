@@ -11,6 +11,7 @@ class Setttings(BaseSettings):
     client_id: str
     datadome_clientid: str
     user_id: int
+    sc_a_id: str
 
     proxy: str | None = None
 

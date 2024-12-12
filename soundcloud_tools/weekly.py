@@ -5,6 +5,7 @@ from typing import Literal
 import devtools
 
 from soundcloud_tools.client import Client
+from soundcloud_tools.models.artist_shortcut import Story, StoryType
 from soundcloud_tools.models.comment import Comment
 from soundcloud_tools.models.playlist import PlaylistCreate
 from soundcloud_tools.models.request import PlaylistCreateRequest
@@ -23,6 +24,18 @@ async def get_collections(
     reposts = await get_reposts(client, user_id, start, end, exclude_own)
     comments = await get_comments(client, user_id, start, end, exclude_own)
     return reposts + comments
+
+
+async def get_stories(client: Client, start: datetime, end: datetime) -> list[Story]:
+    artist_shortcuts = await client.get_artist_shortcuts()
+    all_stories = []
+    for artist_shortcut in artist_shortcuts.collection:
+        logger.info(f"Fetching stories for {artist_shortcut.user.username}")
+        response = await client.get_artist_shortcut_stories(user_urn=artist_shortcut.user.urn)
+        logger.info(f"Found {len(response.stories)} stories for {artist_shortcut.user.username}")
+        stories = [s for s in response.stories if start < s.created_at < end]
+        all_stories += stories
+    return all_stories
 
 
 async def get_all_user_likes(client: Client, user_id: int):
@@ -44,6 +57,7 @@ async def get_reposts(
 ) -> list[StreamItem]:
     limit, offset = 200, 0
     user_urn = f"soundcloud:users:{user_id}"
+    n_zero = 0
     all_reposts = []
     while True:
         response: Stream = await client.get_stream(user_urn=user_urn, limit=limit, offset=offset)
@@ -55,6 +69,10 @@ async def get_reposts(
         logger.info(f"Found {len(reposts)} valid reposts ({offset = }, total = {len(all_reposts)})")
         all_reposts += reposts
         if not reposts and all_reposts:
+            break
+        if not reposts:
+            n_zero += 1
+        if n_zero > 10:
             break
         offset += limit
     return all_reposts
@@ -96,14 +114,26 @@ def get_track_ids_from_collections(collections: list[StreamItem | Comment], type
     return track_ids
 
 
-async def get_tracks_ids_in_timespan(client: Client, user_id: int, start: datetime, end: datetime, types: list[Items]):
-    collections = []
-    if "track" in types or "track-repost" in types:
-        collections += await get_reposts(client, user_id, start=start, end=end, exclude_own=True)
-    if "comment" in types:
-        collections += await get_comments(client, user_id, start=start, end=end, exclude_own=True)
+def get_track_ids_from_stories(stories: list[Story], types: list[StoryType]) -> set[int]:
+    track_ids = set()
+    for c in stories:
+        if c.type not in types:
+            continue
+        if c.type.startswith("playlist"):
+            track_ids |= {t.id for t in c.playlist.tracks}
+        if c.type.startswith("track"):
+            track_ids.add(c.snippeted_track.id)
+    return track_ids
 
-    track_ids = get_track_ids_from_collections(collections, types=types)
+
+async def get_tracks_ids_in_timespan(client: Client, user_id: int, start: datetime, end: datetime, types: list[Items]):
+    track_ids = set()
+    if "track" in types or "track-repost" in types:
+        reposts = await get_reposts(client, user_id=user_id, start=start, end=end, exclude_own=True)
+        track_ids |= get_track_ids_from_collections(reposts, types=types)
+    if "comment" in types:
+        collections = await get_comments(client, user_id, start=start, end=end, exclude_own=True)
+        track_ids |= get_track_ids_from_collections(collections, types=types)
     logger.info(f"Found {len(track_ids)} tracks")
     return track_ids
 
