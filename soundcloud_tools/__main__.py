@@ -14,7 +14,7 @@ def main(week: int = 0, exclude_liked: bool = False, half: Literal["first", "sec
         create_weekly_favorite_playlist(
             client=Client(),
             user_id=get_settings().user_id,
-            types=["track-repost", "track"],
+            types=["track-repost", "track-post"],
             week=week,
             exclude_liked=exclude_liked,
             half=half,

@@ -87,7 +87,7 @@ class Client:
         }
         self.params = {
             "client_id": get_settings().client_id,
-            "app_version": "1725276048",
+            "app_version": "1733838997",
             "app_locale": "en",
         }
         self.proxies = {"https://": "https://" + get_settings().proxy} if get_settings().proxy else {}
@@ -171,6 +171,14 @@ class Client:
 
     @route("GET", "search", response_model=scm.Search)
     async def search(self, q: str, limit: int = 20, offset: int = 0): ...
+
+    @route("GET", "me/artist-shortcuts", response_model=scm.ArtistShortcuts)
+    async def get_artist_shortcuts(
+        self, limit: int = 1000, offset: int = 0, linked_partitioning: bool = True
+    ) -> scm.ArtistShortcuts: ...
+
+    @route("GET", "me/artist-shortcuts/stories/{user_urn}", response_model=scm.ArtistShortcutStories)
+    async def get_artist_shortcut_stories(self, user_urn: str) -> scm.ArtistShortcutStories: ...
 
 
 def fetch_collection_response(endpoint: Callable, limit: int = 20, **kwargs):
