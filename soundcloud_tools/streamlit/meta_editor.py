@@ -18,6 +18,9 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from streamlit import session_state as sst
 
 from soundcloud_tools.models import Track
+from soundcloud_tools.predict.base import Predictor
+from soundcloud_tools.predict.bpm import BPMPredictor
+from soundcloud_tools.predict.style import StylePredictor
 from soundcloud_tools.streamlit.client import get_client
 from soundcloud_tools.streamlit.utils import apply_to_sst, generate_css, table
 from soundcloud_tools.utils import convert_to_int
@@ -188,6 +191,18 @@ class TrackHandler(BaseModel):
         return self.file.rename(Path(self.file.parent, new_name + self.file.suffix))
 
 
+def render_predictor(predictor: Predictor, filename: str, autopredict: bool = False):
+    key = predictor.__class__.__name__
+    if autopredict:
+        if (pred := sst.get((filename, key))) is not None:
+            return pred
+        sst[(filename, key)] = predictor.predict(filename)
+        return sst[(filename, key)]
+    if st.button(f"Predict {predictor.title}", key=f"predict-{key}", help=predictor.help):
+        sst[(filename, key)] = predictor.predict(filename)
+    return sst.get((filename, key))
+
+
 def load_tracks(folder: Path, file_types: list[str] | None = None):
     files = list(folder.glob("*"))
     files = [
@@ -232,7 +247,12 @@ def render_file(file: Path, root_folder: Path):
     with c1:
         st.subheader(":material/description: Edit Track Metadata")
         render_auto_checkboxes(handler, sc_track_info)
-    modified_info = modify_track_info(handler.track_info, has_artwork=bool(handler.covers), sc_track_info=sc_track_info)
+    modified_info = modify_track_info(
+        handler.track_info,
+        filename=str(handler.file),
+        has_artwork=bool(handler.covers),
+        sc_track_info=sc_track_info,
+    )
     with c2.container(border=True):
         cc1, cc2 = st.columns((1, 9))
         cc2.caption(f"_Generated Filename:_ `{modified_info.filename}`")
@@ -378,7 +398,7 @@ def changed_string(old: str, new: str) -> bool:
     return " ⚠️ " if old != new else ""
 
 
-def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):
+def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # noqa: C901
     if st.checkbox(
         ":material/cleaning_services: Auto-Clean",
         value=False,
@@ -464,6 +484,7 @@ def bold(text: str) -> str:
 def modify_track_info(
     track_info: TrackInfo,
     sc_track_info: TrackInfo | None,
+    filename: str,
     has_artwork: bool = False,
 ) -> TrackInfo:
     title_col, artist_col, dates_col = st.columns((4, 4, 2))
@@ -574,10 +595,18 @@ def modify_track_info(
     # Genre
     with genre_col.container(border=True):
         st.write(f"__Genre__{changed_string(track_info.genre, sst.ti_genre)}")
-        gcols = st.columns(3)
-        genres = ["Trance", "Hardtrance", "House"]
-        for i, genre in enumerate(genres):
-            if gcols[i].button(genre, use_container_width=True):
+        c1, c2 = st.columns(2)
+        if c1.toggle("Predict"):
+            genres = render_predictor(StylePredictor(), filename, autopredict=True)
+            bpm = render_predictor(BPMPredictor(), filename, autopredict=True)
+            c2.write(f"BPM __{bpm}__")
+        else:
+            genres = [("Trance", ""), ("Hardtrance", ""), ("House", "")]
+
+        gcols = st.columns(len(genres))
+        for i, (genre, prob) in enumerate(genres):
+            prob_str = prob and f" ({prob:.2f})"
+            if gcols[i].button(f"{genre}{prob_str}", use_container_width=True):
                 sst.ti_genre = genre
         genre = st.text_input("Genre", track_info.genre, key="ti_genre", label_visibility="collapsed")
 
@@ -655,6 +684,7 @@ def cover_handler(track: ID3FileType, artwork: bytes | None = None):
         c2.download_button(f":material/download: {i}", data=cover.data, file_name=file_name, key=file_name)
         if c2.button(":material/delete:", key=f"remove_{i}_{bool(artwork)}"):
             all_covers.pop(i)
+            track.tags.delall("APIC")
             track.tags.setall("APIC", all_covers)
             st.rerun()
 
@@ -744,8 +774,10 @@ def file_selector() -> tuple[Path, Path]:
         if sst.index >= len(files):
             sst.index = 0
         del sst.new_track_name
-
-    selected_file = files[sst.index]
+    try:
+        selected_file = files[sst.index]
+    except IndexError:
+        selected_file = None
     return selected_file, root_folder
 
 
@@ -756,7 +788,11 @@ def main():
     with st.sidebar:
         st.subheader(":material/folder: Folder Selection")
         file, root_folder = file_selector()
+        if file is None:
+            st.warning("No files present in folder")
+            return
         st.divider()
+
     render_file(file, root_folder)
 
 
