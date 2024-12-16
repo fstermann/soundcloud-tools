@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 import urllib.parse
 from collections import Counter
@@ -14,7 +15,7 @@ from mutagen.easyid3 import EasyID3
 from mutagen.id3 import APIC, ID3, TCON, TDRC, TDRL, TIT2, TPE1, ID3FileType
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from streamlit import session_state as sst
 
 from soundcloud_tools.models import Track
@@ -35,6 +36,7 @@ FILETYPE_MAP = {
 ARTWORK_WIDTH = 100
 
 st.set_page_config(page_title="MetaEditor", page_icon=":material/database:", layout="wide")
+logger = logging.getLogger(__name__)
 
 
 class TrackInfo(BaseModel):
@@ -84,6 +86,12 @@ class TrackHandler(BaseModel):
     root_folder: Path
     file: Path
     bitrate: int = 320
+
+    @field_validator("root_folder", "file", mode="before")
+    def check_paths(cls, v) -> Path:
+        if isinstance(v, str):
+            v = Path(v)
+        return v
 
     @property
     def cleaned_folder(self):
@@ -721,8 +729,15 @@ def file_selector() -> tuple[Path, Path]:
             st.error("Invalid root folder")
             st.stop()
 
-        direct = st.checkbox("Direct", key="direct", help="Iterate through root folder directly")
-        path = root_folder / "prepare" if not direct else root_folder
+        match st.radio("Mode", ("Direct", "Collection", "Cleaned"), key="mode"):
+            case "Direct":
+                path = root_folder
+            case "Collection":
+                path = root_folder / "collection"
+            case "Cleaned":
+                path = root_folder / "cleaned"
+            case _:
+                path = root_folder / "prepare"
 
         if not (files := load_tracks(path)):
             st.error("No files found")
@@ -752,6 +767,7 @@ def file_selector() -> tuple[Path, Path]:
         key="prev",
         on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index - 1)),
         use_container_width=True,
+        disabled=sst.get("index") == 0,
     )
     st.selectbox(
         "select",
@@ -767,6 +783,7 @@ def file_selector() -> tuple[Path, Path]:
         key="next",
         on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index + 1)),
         use_container_width=True,
+        disabled=sst.get("index") == len(files) - 1,
     )
 
     if "new_track_name" in sst:
