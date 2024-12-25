@@ -88,6 +88,7 @@ class TrackHandler(BaseModel):
     bitrate: int = 320
 
     @field_validator("root_folder", "file", mode="before")
+    @classmethod
     def check_paths(cls, v) -> Path:
         if isinstance(v, str):
             v = Path(v)
