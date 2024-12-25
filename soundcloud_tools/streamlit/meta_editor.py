@@ -765,6 +765,8 @@ def file_selector() -> tuple[Path, Path]:
         use_container_width=True,
         disabled=sst.get("index") == 0,
     )
+    if not 0 <= sst.get("index") < len(files):
+        sst.index = 0
     st.selectbox(
         "select",
         files,
