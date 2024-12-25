@@ -604,7 +604,7 @@ def modify_track_info(
 
     # Genre
     with genre_col.container(border=True):
-        st.write(f"__Genre__{changed_string(track_info.genre, sst.ti_genre)}")
+        st.write(f"__Genre__{changed_string(track_info.genre, sst.get("ti_genre"))}")
         c1, c2 = st.columns(2)
         if c1.toggle("Predict"):
             genres = render_predictor(StylePredictor(), filename, autopredict=True)
@@ -636,12 +636,12 @@ def modify_track_info(
             disabled=sc_track_info is None,
         )
         year = st.number_input(
-            f"Year{changed_string(track_info.year, sst.ti_year)}",
+            f"Year{changed_string(track_info.year, sst.get("ti_year"))}",
             track_info.year,
             key="ti_year",
         )
         release_date = st.text_input(
-            f"Release Date{changed_string(track_info.release_date, sst.ti_release_date)}",
+            f"Release Date{changed_string(track_info.release_date, sst.get("ti_release_date"))}",
             track_info.release_date,
             key="ti_release_date",
         )
