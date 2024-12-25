@@ -254,9 +254,10 @@ def render_file(file: Path, root_folder: Path):
     with st.sidebar.container(border=True):
         sc_track_info = render_soundcloud_search(remove_free_dl(handler.file.stem))
 
-    c1, c2 = st.columns((2, 8))
-    with c1:
         st.subheader(":material/description: Edit Track Metadata")
+    c1, c2 = st.columns((2.5, 7.5))
+    with c1:
+        with st.container(border=True):
         render_auto_checkboxes(handler, sc_track_info)
     modified_info = modify_track_info(
         handler.track_info,
@@ -410,33 +411,6 @@ def changed_string(old: str, new: str) -> bool:
 
 
 def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # noqa: C901
-    if st.checkbox(
-        ":material/cleaning_services: Auto-Clean",
-        value=False,
-        key="auto_clean",
-        help=(
-            "Automatically cleanup Title and Artists "
-            "(Removes Free DL mentions, artists in title and separates artists into a list)"
-        ),
-    ):
-        apply_to_sst(clean_title, "ti_title")()
-        apply_to_sst(clean_artists, "ti_artist")()
-    if st.checkbox(
-        ":material/arrow_upward: Auto-Titelize",
-        value=False,
-        key="auto_titelize",
-        help="Automatically titelizes Artists and Title",
-    ):
-        apply_to_sst(titelize, "ti_title")()
-        apply_to_sst(titelize, "ti_artist")()
-    if st.checkbox(
-        ":material/add_photo_alternate: Auto-Copy Artwork",
-        value=False,
-        key="auto_copy_artwork",
-        help="Automatically copy artwork if not present",
-    ):
-        if not handler.track_info.artwork and sc_track_info:
-            copy_artwork(sc_track_info.artwork_url)
     cols = st.columns(3)
     cols[0].button(
         ":material/cloud_download:",
@@ -486,6 +460,34 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
         st.success("Finalized Successfully")
         reset_track_info_sst()
         st.rerun()
+
+    if st.checkbox(
+        ":material/cleaning_services: Auto-Clean",
+        value=False,
+        key="auto_clean",
+        help=(
+            "Automatically cleanup Title and Artists "
+            "(Removes Free DL mentions, artists in title and separates artists into a list)"
+        ),
+    ):
+        apply_to_sst(clean_title, "ti_title")()
+        apply_to_sst(clean_artists, "ti_artist")()
+    if st.checkbox(
+        ":material/arrow_upward: Auto-Titelize",
+        value=False,
+        key="auto_titelize",
+        help="Automatically titelizes Artists and Title",
+    ):
+        apply_to_sst(titelize, "ti_title")()
+        apply_to_sst(titelize, "ti_artist")()
+    if st.checkbox(
+        ":material/add_photo_alternate: Auto-Copy Artwork",
+        value=False,
+        key="auto_copy_artwork",
+        help="Automatically copy artwork if not present",
+    ):
+        if not handler.track_info.artwork and sc_track_info:
+            copy_artwork(sc_track_info.artwork_url)
 
 
 def bold(text: str) -> str:
