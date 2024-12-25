@@ -124,12 +124,13 @@ class TrackHandler(BaseModel):
 
     @property
     def track_info(self):
+        track = self.track
         return TrackInfo(
-            title=str(self.track.tags.get("TIT2", "")),
-            artist=str(self.track.tags.get("TPE1", "")).split("\u0000"),
-            genre=str(self.track.tags.get("TCON", "")),
-            year=convert_to_int(str(self.track.tags.get("TDRC", 0)), default=0),
-            release_date=str(self.track.tags.get("TDRL", "")),
+            title=str(track.tags.get("TIT2", "")),
+            artist=str(track.tags.get("TPE1", "")).split("\u0000"),
+            genre=str(track.tags.get("TCON", "")),
+            year=convert_to_int(str(track.tags.get("TDRC", 0)), default=0),
+            release_date=str(track.tags.get("TDRL", "")),
             artwork=self.get_single_cover(raise_error=False),
         )
 
