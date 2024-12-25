@@ -720,9 +720,6 @@ def cover_handler(track: ID3FileType, artwork: bytes | None = None):
 
 
 def file_selector() -> tuple[Path, Path]:
-    c1, c2 = st.columns((4, 1))
-
-    with c1:
         root_folder = st.text_input("Root folder", value="~/Music/tracks")
         try:
             root_folder = Path(root_folder).expanduser()
@@ -731,20 +728,17 @@ def file_selector() -> tuple[Path, Path]:
             st.error("Invalid root folder")
             st.stop()
 
-        match st.radio("Mode", ("Direct", "Collection", "Cleaned"), key="mode"):
-            case "Direct":
-                path = root_folder
-            case "Collection":
-                path = root_folder / "collection"
-            case "Cleaned":
-                path = root_folder / "cleaned"
-            case _:
-                path = root_folder / "prepare"
+    paths = {
+        "Prepare": root_folder / "prepare",
+        "Direct": root_folder,
+        "Collection": root_folder / "collection",
+        "Cleaned": root_folder / "cleaned",
+    }
+    path = paths[st.radio("Mode", paths, key="mode")]
 
         if not (files := load_tracks(path)):
             st.error("No files found")
             st.stop()
-    with c2:
         st.write("__Files__")
         suffixes = [f.suffix for f in files]
         table(Counter(suffixes).items())
