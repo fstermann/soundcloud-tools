@@ -197,7 +197,8 @@ class TrackHandler(BaseModel):
         self.file.rename(self.archive_folder / self.file.name)
 
     def rename(self, new_name: str):
-        return self.file.rename(Path(self.file.parent, new_name + self.file.suffix))
+        safe_name = new_name.replace("/", "-")
+        return self.file.rename(Path(self.file.parent, safe_name + self.file.suffix))
 
 
 def render_predictor(predictor: Predictor, filename: str, autopredict: bool = False):
