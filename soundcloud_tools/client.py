@@ -87,7 +87,7 @@ class Client:
         }
         self.params = {
             "client_id": get_settings().client_id,
-            "app_version": "1733838997",
+            "app_version": "1735826482",
             "app_locale": "en",
         }
         self.proxies = {"https://": "https://" + get_settings().proxy} if get_settings().proxy else {}
@@ -96,11 +96,12 @@ class Client:
         return data if not isinstance(data, BaseModel) else data.model_dump(mode="json")
 
     async def make_request(self, method: str, url: str, **kwargs):
-        kwargs.setdefault("params", self.params)
-        kwargs.setdefault("headers", self.headers)
+        kwargs["params"] = kwargs.get("params", {}) | self.params
+        kwargs["headers"] = kwargs.get("headers", {}) | self.headers
         if get_settings().proxy:
             kwargs.setdefault("proxies", self.proxies)
         kwargs.setdefault("verify", False)
+        logger.info(f"Making request {method} {url}")
         response = requests.request(method, url, **kwargs)
         logger.info(f"Response {response.status_code} for {method} {response.url}")
         return response
