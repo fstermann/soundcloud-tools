@@ -5,17 +5,10 @@ import urllib.parse
 from collections import Counter
 from copy import copy
 from pathlib import Path
-from typing import Callable, Self
+from typing import Callable
 
-import pydub
-import requests
 import streamlit as st
-from mutagen.aiff import AIFF
-from mutagen.easyid3 import EasyID3
-from mutagen.id3 import APIC, ID3, TCON, TDRC, TDRL, TIT2, TPE1, ID3FileType
-from mutagen.mp3 import MP3
-from mutagen.wave import WAVE
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from mutagen.id3 import APIC, ID3FileType
 from streamlit import session_state as sst
 
 from soundcloud_tools.models import Track
@@ -23,183 +16,13 @@ from soundcloud_tools.predict.base import Predictor
 from soundcloud_tools.predict.bpm import BPMPredictor
 from soundcloud_tools.predict.style import StylePredictor
 from soundcloud_tools.streamlit.client import get_client
-from soundcloud_tools.streamlit.utils import apply_to_sst, generate_css, table
-from soundcloud_tools.utils import convert_to_int
-
-FILETYPE_MAP = {
-    ".mp3": MP3,
-    ".aif": AIFF,
-    ".aiff": AIFF,
-    ".wav": WAVE,
-}
+from soundcloud_tools.streamlit.track_handler import TrackHandler, TrackInfo
+from soundcloud_tools.streamlit.utils import apply_to_sst, generate_css, load_tracks, table
 
 ARTWORK_WIDTH = 100
 
 st.set_page_config(page_title="MetaEditor", page_icon=":material/database:", layout="wide")
 logger = logging.getLogger(__name__)
-
-
-class TrackInfo(BaseModel):
-    model_config = ConfigDict(validate_assignment=True)
-
-    title: str
-    artist: str | list[str]
-    genre: str
-    year: int
-    release_date: str
-    artwork: bytes | None = None
-    artwork_url: str | None = None
-
-    @model_validator(mode="after")
-    def check_artwork_url(self):
-        if self.artwork_url and not self.artwork:
-            self.artwork = requests.get(self.artwork_url).content
-        return self
-
-    @property
-    def filename(self) -> str:
-        return f"{self.artist_str} - {self.title}"
-
-    @property
-    def complete(self) -> bool:
-        return all([self.title, self.artist, self.genre, self.year, self.release_date, self.artwork])
-
-    @property
-    def artist_str(self) -> str:
-        artists = [self.artist] if isinstance(self.artist, str) else self.artist
-        return ", ".join(artists)
-
-    @classmethod
-    def from_sc_track(cls, track: Track) -> Self:
-        artists = (track.publisher_metadata and track.publisher_metadata.artist) or track.user.username
-        return cls(
-            title=track.title,
-            artist=artists,
-            genre=track.genre or "",
-            year=track.display_date.year,
-            release_date=track.display_date.strftime("%Y-%m-%d"),
-            artwork_url=track.hq_artwork_url,
-        )
-
-
-class TrackHandler(BaseModel):
-    root_folder: Path
-    file: Path
-    bitrate: int = 320
-
-    @field_validator("root_folder", "file", mode="before")
-    @classmethod
-    def check_paths(cls, v) -> Path:
-        if isinstance(v, str):
-            v = Path(v)
-        return v
-
-    @property
-    def cleaned_folder(self):
-        return self.root_folder / "cleaned"
-
-    @property
-    def prepare_folder(self):
-        return self.root_folder / "prepare"
-
-    @property
-    def archive_folder(self):
-        return self.root_folder / "archive"
-
-    def delete(self):
-        self.file.unlink()
-        return
-
-    @property
-    def mp3_file(self):
-        return self.cleaned_folder / (self.file.stem + ".mp3")
-
-    @property
-    def track(self):
-        class_ = FILETYPE_MAP.get(Path(self.file).suffix, EasyID3)
-        obj = class_(self.file)
-        if not hasattr(obj, "tags") or obj.tags is None:
-            obj.add_tags()
-        return obj
-
-    @property
-    def track_info(self):
-        track = self.track
-        return TrackInfo(
-            title=str(track.tags.get("TIT2", "")),
-            artist=str(track.tags.get("TPE1", "")).split("\u0000"),
-            genre=str(track.tags.get("TCON", "")),
-            year=convert_to_int(str(track.tags.get("TDRC", 0)), default=0),
-            release_date=str(track.tags.get("TDRL", "")),
-            artwork=self.get_single_cover(raise_error=False),
-        )
-
-    @property
-    def covers(self):
-        return self.track.tags.getall("APIC")
-
-    def get_single_cover(self, raise_error: bool = True):
-        if len(self.covers) != 1:
-            if raise_error:
-                raise ValueError("Track has more than one cover")
-            return self.covers[0].data if self.covers else None
-        return self.covers[0].data
-
-    def convert_to_mp3(self):
-        if not self.cleaned_folder.exists():
-            self.cleaned_folder.mkdir(parents=True)
-        sound = pydub.AudioSegment.from_file(self.file)
-        sound.export(self.mp3_file, format="mp3", bitrate=f"{self.bitrate}k")
-        return self.mp3_file
-
-    def move_to_cleaned(self):
-        if not self.cleaned_folder.exists():
-            self.cleaned_folder.mkdir(parents=True)
-        safe_name = self.file.name.replace("/", "-")
-        self.file.rename(self.cleaned_folder / safe_name)
-
-    def update_release_date(self, release_date: str):
-        track = self.track
-        track.tags.delall("TDRL")
-        track.tags.add(TDRL(encoding=3, text=release_date))
-        track.save()
-
-    def _add_info(self, track, info: TrackInfo, artwork: bytes | None = None):
-        track.add(TIT2(encoding=3, text=info.title))
-        track.add(TPE1(encoding=3, text=info.artist))
-        track.add(TCON(encoding=3, text=info.genre))
-        track.add(TDRC(encoding=3, text=str(info.year)))
-        track.add(TDRL(encoding=3, text=info.release_date))
-        if artwork:
-            track.delall("APIC")
-            track.add(
-                APIC(
-                    encoding=0,
-                    mime="image/jpeg",
-                    type=3,
-                    desc="Cover",
-                    data=artwork,
-                )
-            )
-
-    def add_info(self, info: TrackInfo, artwork: bytes | None = None):
-        track = self.track
-        self._add_info(track.tags, info=info, artwork=artwork)
-        track.save()
-
-    def add_mp3_info(self):
-        track = ID3(str(self.mp3_file))
-        self._add_info(track, info=self.track_info, artwork=self.get_single_cover())
-        track.save()
-
-    def archive(self):
-        if not self.archive_folder.exists():
-            self.archive_folder.mkdir(parents=True)
-        self.file.rename(self.archive_folder / self.file.name)
-
-    def rename(self, new_name: str):
-        safe_name = new_name.replace("/", "-")
-        return self.file.rename(Path(self.file.parent, safe_name + self.file.suffix))
 
 
 def render_predictor(predictor: Predictor, filename: str, autopredict: bool = False):
@@ -212,17 +35,6 @@ def render_predictor(predictor: Predictor, filename: str, autopredict: bool = Fa
     if st.button(f"Predict {predictor.title}", key=f"predict-{key}", help=predictor.help):
         sst[(filename, key)] = predictor.predict(filename)
     return sst.get((filename, key))
-
-
-def load_tracks(folder: Path, file_types: list[str] | None = None):
-    files = list(folder.glob("*"))
-    files = [
-        f
-        for f in files
-        if f.is_file() and (f.suffix in file_types if file_types else True) and not f.stem.startswith(".")
-    ]
-    files.sort(key=lambda f: f.name)
-    return files
 
 
 def reset_track_info_sst():
@@ -254,10 +66,9 @@ def render_file(file: Path, root_folder: Path):
     with st.sidebar.container(border=True):
         sc_track_info = render_soundcloud_search(remove_free_dl(handler.file.stem))
 
-        st.subheader(":material/description: Edit Track Metadata")
-    c1, c2 = st.columns((2.5, 7.5))
-    with c1:
-        with st.container(border=True):
+    st.subheader(":material/description: Edit Track Metadata")
+    c1, c2, c3 = st.columns((2.5, 5, 2))
+    with c1.container(border=True):
         render_auto_checkboxes(handler, sc_track_info)
     modified_info = modify_track_info(
         handler.track_info,
@@ -266,14 +77,16 @@ def render_file(file: Path, root_folder: Path):
         sc_track_info=sc_track_info,
     )
     with c2.container(border=True):
-        cc1, cc2 = st.columns((1, 9))
-        cc2.caption(f"_Generated Filename:_ `{modified_info.filename}`")
-        if cc1.button(":material/save:", help="Save Metadata", use_container_width=True, key="save_file"):
+        if st.button(
+            ":material/save:",
+            help=f"Save Metadata\n\n_Generated Filename:_ `{modified_info.filename}`",
+            use_container_width=True,
+            key="save_file",
+        ):
             handler.add_info(modified_info, artwork=modified_info.artwork)
             sst.new_track_name = handler.rename(modified_info.filename)
-            st.success("Saved Successfully")
             st.rerun()
-        render_track_info(handler.track_info)
+        render_track_info(handler.track_info, context=(st, c3.container(border=True)))
 
     with st.expander("Cover Handler"):
         cover_handler(handler.track, artwork=modified_info.artwork)
@@ -664,15 +477,22 @@ def preparte_table_data(data: dict):
     table(data)
 
 
-def render_track_info(track_info: TrackInfo, vertical: bool = False):
-    st.write("__Metadata__")
-    c1, c2, c3 = (st.container(), st.container(), st.container()) if vertical else st.columns(3)
+def render_track_info(track_info: TrackInfo, context: tuple = (None, None)):
+    if context:
+        left, right = context
+        left_c = left.container()
+        c1, c2, c3 = (*left.columns(2), right)
+    else:
+        left_c = st.container()
+        c1, c2, c3 = st.columns(3)
+
+    with left_c:
+        table(preparte_table_data(track_info.model_dump(include={"title"})))
     with c1:
-        table(preparte_table_data(track_info.model_dump(include={"title", "artist", "genre"})))
+        table(preparte_table_data(track_info.model_dump(include={"artist", "genre"})))
     with c2:
         table(preparte_table_data(track_info.model_dump(include={"release_date", "year"})))
     with c3:
-        st.write("__Artwork__")
         if track_info.artwork:
             st.image(track_info.artwork, width=ARTWORK_WIDTH)
             st.caption(track_info.artwork_url)
@@ -723,13 +543,13 @@ def cover_handler(track: ID3FileType, artwork: bytes | None = None):
 
 
 def file_selector() -> tuple[Path, Path]:
-        root_folder = st.text_input("Root folder", value="~/Music/tracks")
-        try:
-            root_folder = Path(root_folder).expanduser()
-            assert root_folder.exists()
-        except (AssertionError, FileNotFoundError):
-            st.error("Invalid root folder")
-            st.stop()
+    root_folder = st.text_input("Root folder", value="~/Music/tracks")
+    try:
+        root_folder = Path(root_folder).expanduser()
+        assert root_folder.exists()
+    except (AssertionError, FileNotFoundError):
+        st.error("Invalid root folder")
+        st.stop()
 
     paths = {
         "Prepare": root_folder / "prepare",
@@ -739,10 +559,12 @@ def file_selector() -> tuple[Path, Path]:
     }
     path = paths[st.radio("Mode", paths, key="mode")]
 
-        if not (files := load_tracks(path)):
-            st.error("No files found")
-            st.stop()
-        st.write("__Files__")
+    if not (files := load_tracks(path)):
+        st.error("No files found")
+        st.stop()
+
+    with st.container(border=True):
+        st.write("__Folder Stats__")
         suffixes = [f.suffix for f in files]
         table(Counter(suffixes).items())
 
@@ -803,13 +625,12 @@ def main():
     st.header(":material/database: MetaEditor")
     st.write("Edit track metadata with integrated Soundcloud search and export to 320kb/s mp3 files.")
     st.divider()
-    with st.sidebar:
-        st.subheader(":material/folder: Folder Selection")
-        file, root_folder = file_selector()
-        if file is None:
-            st.warning("No files present in folder")
-            return
-        st.divider()
+
+    st.subheader(":material/folder: Folder Selection")
+    file, root_folder = file_selector()
+    if file is None:
+        st.warning("No files present in folder")
+        return
 
     render_file(file, root_folder)
 
