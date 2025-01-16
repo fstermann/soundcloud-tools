@@ -1,11 +1,8 @@
 import asyncio
 import logging
 import re
-import urllib.parse
-from collections import Counter
 from copy import copy
 from pathlib import Path
-from typing import Callable
 
 import streamlit as st
 from mutagen.id3 import APIC, ID3FileType
@@ -16,8 +13,15 @@ from soundcloud_tools.predict.base import Predictor
 from soundcloud_tools.predict.bpm import BPMPredictor
 from soundcloud_tools.predict.style import StylePredictor
 from soundcloud_tools.streamlit.client import get_client
+from soundcloud_tools.streamlit.file_selection import file_selector
 from soundcloud_tools.streamlit.track_handler import TrackHandler, TrackInfo
-from soundcloud_tools.streamlit.utils import apply_to_sst, generate_css, load_tracks, table
+from soundcloud_tools.streamlit.utils import (
+    apply_to_sst,
+    bold,
+    render_embedded_track,
+    reset_track_info_sst,
+    table,
+)
 
 ARTWORK_WIDTH = 100
 
@@ -35,12 +39,6 @@ def render_predictor(predictor: Predictor, filename: str, autopredict: bool = Fa
     if st.button(f"Predict {predictor.title}", key=f"predict-{key}", help=predictor.help):
         sst[(filename, key)] = predictor.predict(filename)
     return sst.get((filename, key))
-
-
-def reset_track_info_sst():
-    for key in sst:
-        if key.startswith("ti_"):
-            sst[key] = type(sst[key])()
 
 
 @st.dialog("Delete")
@@ -106,48 +104,6 @@ def copy_track_info(track_info: TrackInfo):
 
 def copy_artwork(artwork_url: str):
     sst.ti_artwork_url = artwork_url
-
-
-def render_embedded_track(track: Track):
-    options = {
-        "url": f"https://api.soundcloud.com/tracks/{track.id}",
-        "color": "#ff5500",
-        "auto_play": "false",
-        "hide_related": "false",
-        "show_comments": "true",
-        "show_user": "true",
-        "show_reposts": "false",
-        "show_teaser": "true",
-        "visual": "true",
-    }
-    src_url = f"https://w.soundcloud.com/player/?{urllib.parse.urlencode(options)}"
-    div_css = generate_css(
-        font_size="10px",
-        color="#cccccc",
-        line_break="anywhere",
-        word_break="normal",
-        overflow="hidden",
-        white_space="nowrap",
-        text_overflow="ellipsis",
-        font_family="Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif",
-        font_weight="100",
-    )
-    link_css = generate_css(
-        color="#cccccc",
-        text_decoration="none",
-    )
-
-    st.write(
-        f"""\
-<iframe width="100%" height="300" scrolling="no" frameborder="no" allow="autoplay" src="{src_url}"></iframe>
-<div style="{div_css}">
-<a href="{track.user.permalink_url}" title="{track.user.full_name}" target="_blank" style="{link_css}">\
-{track.user.full_name}</a>
- ·
-<a href="{track.permalink_url}" title="{track.title}" target="_blank" style="{link_css}">{track.title}</a>
-</div>""",
-        unsafe_allow_html=True,
-    )
 
 
 def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | None:
@@ -301,10 +257,6 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
     ):
         if not handler.track_info.artwork and sc_track_info:
             copy_artwork(sc_track_info.artwork_url)
-
-
-def bold(text: str) -> str:
-    return f"__{text}__" if text else text
 
 
 def modify_track_info(
@@ -542,95 +494,17 @@ def cover_handler(track: ID3FileType, artwork: bytes | None = None):
     c3.button(":material/refresh:", key=f"reload_{bool(artwork)}", use_container_width=True)
 
 
-def file_selector() -> tuple[Path, Path]:
-    root_folder = st.text_input("Root folder", value="~/Music/tracks")
-    try:
-        root_folder = Path(root_folder).expanduser()
-        assert root_folder.exists()
-    except (AssertionError, FileNotFoundError):
-        st.error("Invalid root folder")
-        st.stop()
-
-    paths = {
-        "Prepare": root_folder / "prepare",
-        "Direct": root_folder,
-        "Collection": root_folder / "collection",
-        "Cleaned": root_folder / "cleaned",
-    }
-    path = paths[st.radio("Mode", paths, key="mode")]
-
-    if not (files := load_tracks(path)):
-        st.error("No files found")
-        st.stop()
-
-    with st.container(border=True):
-        st.write("__Folder Stats__")
-        suffixes = [f.suffix for f in files]
-        table(Counter(suffixes).items())
-
-    sst.setdefault("index", 0)
-
-    st.divider()
-
-    st.subheader(":material/playlist_play: File Selection")
-
-    c1, c2 = st.columns(2)
-
-    def wrap_on_click(func: Callable):
-        def wrapper():
-            func()
-            reset_track_info_sst()
-
-        return wrapper
-
-    c1.button(
-        ":material/skip_previous: Previous",
-        key="prev",
-        on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index - 1)),
-        use_container_width=True,
-        disabled=sst.get("index") == 0,
-    )
-    if not 0 <= sst.get("index") < len(files):
-        sst.index = 0
-    st.selectbox(
-        "select",
-        files,
-        key="selection",
-        index=sst.index,
-        on_change=wrap_on_click(lambda: sst.__setitem__("index", files.index(sst.selection))),
-        label_visibility="collapsed",
-        format_func=lambda f: f.name,
-    )
-    c2.button(
-        "Next :material/skip_next:",
-        key="next",
-        on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index + 1)),
-        use_container_width=True,
-        disabled=sst.get("index") == len(files) - 1,
-    )
-
-    if "new_track_name" in sst:
-        sst.index = files.index(sst.new_track_name)
-        if sst.index >= len(files):
-            sst.index = 0
-        del sst.new_track_name
-    try:
-        selected_file = files[sst.index]
-    except IndexError:
-        selected_file = None
-    return selected_file, root_folder
-
-
 def main():
     st.header(":material/database: MetaEditor")
     st.write("Edit track metadata with integrated Soundcloud search and export to 320kb/s mp3 files.")
     st.divider()
 
-    st.subheader(":material/folder: Folder Selection")
-    file, root_folder = file_selector()
-    if file is None:
-        st.warning("No files present in folder")
-        return
+    with st.sidebar:
+        st.subheader(":material/folder: Folder Selection")
+        file, root_folder = file_selector()
+        if file is None:
+            st.warning("No files present in folder")
+            return
 
     render_file(file, root_folder)
 
