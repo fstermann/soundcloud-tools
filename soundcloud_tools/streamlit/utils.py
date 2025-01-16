@@ -1,5 +1,4 @@
 import urllib.parse
-from pathlib import Path
 from typing import Callable
 
 import streamlit as st
@@ -30,17 +29,6 @@ def table(data):
 
 def generate_css(**kwargs):
     return ";".join(f"{k.replace('_', '-')}:{v}" for k, v in kwargs.items())
-
-
-def load_tracks(folder: Path, file_types: list[str] | None = None):
-    files = list(folder.glob("*"))
-    files = [
-        f
-        for f in files
-        if f.is_file() and (f.suffix in file_types if file_types else True) and not f.stem.startswith(".")
-    ]
-    files.sort(key=lambda f: f.name)
-    return files
 
 
 def bold(text: str) -> str:

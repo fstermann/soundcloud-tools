@@ -500,7 +500,6 @@ def main():
     st.divider()
 
     with st.sidebar:
-        st.subheader(":material/folder: Folder Selection")
         file, root_folder = file_selector()
         if file is None:
             st.warning("No files present in folder")

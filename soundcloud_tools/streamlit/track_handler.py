@@ -12,8 +12,7 @@ from mutagen.wave import WAVE
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from soundcloud_tools.models import Track
-from soundcloud_tools.streamlit.utils import load_tracks
-from soundcloud_tools.utils import convert_to_int
+from soundcloud_tools.utils import convert_to_int, load_tracks
 
 FILETYPE_MAP = {
     ".mp3": MP3,
@@ -81,6 +80,11 @@ class TrackHandler(BaseModel):
     @classmethod
     def load_all(cls, root_folder: Path) -> list[Self]:
         return [cls(root_folder=root_folder, file=f) for f in load_tracks(root_folder)]
+
+    @classmethod
+    @st.cache_data
+    def load_track_infos(cls, folder: Path):
+        return [t.track_info for t in cls.load_all(folder)]
 
     @property
     def cleaned_folder(self):
