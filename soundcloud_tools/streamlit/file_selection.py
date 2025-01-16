@@ -19,9 +19,9 @@ def file_selector() -> tuple[Path, Path]:
 
     paths = {
         "Prepare": root_folder / "prepare",
-        "Direct": root_folder,
         "Collection": root_folder / "collection",
         "Cleaned": root_folder / "cleaned",
+        "Direct": root_folder,
     }
     path = paths[st.radio("Mode", paths, key="mode")]
 
