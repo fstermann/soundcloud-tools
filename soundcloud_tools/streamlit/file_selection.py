@@ -1,4 +1,5 @@
 from collections import Counter
+from datetime import date
 from pathlib import Path
 from typing import Callable
 
@@ -69,6 +70,8 @@ def render_filters(path) -> list[int] | None:
     filtered_artists = st.multiselect(
         "Artists", sorted(artists, key=artists.get, reverse=True), format_func=lambda x: f"{x} ({artists[x]})"
     )
+    start_date = st.date_input("Start Date", value=None) or date.min
+    end_date = st.date_input("End Date", value=None) or date.today()
 
     # Filter logic
     selected_indices = [
@@ -77,6 +80,7 @@ def render_filters(path) -> list[int] | None:
         if t.genre in filtered_genres
         or any(a in t.artist_str for a in filtered_artists)
         or (search and any(search in attr for attr in (t.genre.lower(), t.artist_str.lower(), t.title.lower())))
+        or (start_date <= t.release_date_obj <= end_date)
     ]
     if search and not selected_indices:
         # No results found for search

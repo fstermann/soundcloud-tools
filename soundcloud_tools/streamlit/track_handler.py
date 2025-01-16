@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 from typing import Self
 
@@ -63,6 +64,10 @@ class TrackInfo(BaseModel):
             release_date=track.display_date.strftime("%Y-%m-%d"),
             artwork_url=track.hq_artwork_url,
         )
+
+    @property
+    def release_date_obj(self) -> date:
+        return date.fromisoformat(self.release_date)
 
 
 class TrackHandler(BaseModel):
