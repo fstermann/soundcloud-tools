@@ -26,6 +26,7 @@ jobs:
       - run: poetry install
       - name: Archive weekly
         env:
+          WEEK: ${{ github.event.schedule == '0 6 * * 0' && 0 || 1 }}
           HALF: ${{ github.event.schedule == '0 6 * * 0' && '--second' || '--first' }}
           OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
@@ -34,4 +35,4 @@ jobs:
           PROXY: ${{ secrets.PROXY }}
           SC_A_ID: ${{ secrets.SC_A_ID }}
         run: |
-          poetry run soundcloud_tools --week ${{ github.event.inputs.week || 0 }} $HALF --exclude-liked
+          poetry run soundcloud_tools --week ${{ github.event.inputs.week || '$WEEK' }} $HALF --exclude-liked
