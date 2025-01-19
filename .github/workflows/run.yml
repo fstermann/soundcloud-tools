@@ -35,4 +35,4 @@ jobs:
           PROXY: ${{ secrets.PROXY }}
           SC_A_ID: ${{ secrets.SC_A_ID }}
         run: |
-          poetry run soundcloud_tools --week ${{ github.event.inputs.week || '$WEEK' }} $HALF --exclude-liked
+          poetry run soundcloud_tools --week $WEEK $HALF --exclude-liked
