@@ -26,7 +26,7 @@ jobs:
       - run: poetry install
       - name: Archive weekly
         env:
-          WEEK: ${{ github.event.schedule == '0 6 * * 0' && 0 || 1 }}
+          WEEK: ${{ github.event.schedule == '0 6 * * 0' && '0' || '1' }}
           HALF: ${{ github.event.schedule == '0 6 * * 0' && '--second' || '--first' }}
           OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
