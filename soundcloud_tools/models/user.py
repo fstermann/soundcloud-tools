@@ -31,3 +31,7 @@ class User(BaseModel):
     badges: Badges
     station_urn: str
     station_permalink: str
+
+    @property
+    def hq_avatar_url(self) -> str | None:
+        return self.avatar_url and self.avatar_url.replace("-large.", "-t500x500.")
