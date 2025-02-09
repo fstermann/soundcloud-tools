@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import urllib.parse as urlparse
@@ -9,6 +8,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 from starlette.routing import compile_path
 
 from soundcloud_tools import models as scm
+from soundcloud_tools.models.playlist import PlaylistUpdateImageRequest, PlaylistUpdateImageResponse
 from soundcloud_tools.models.request import PlaylistCreateRequest
 from soundcloud_tools.settings import get_settings
 from soundcloud_tools.utils import generate_random_user_agent, get_default_kwargs
@@ -118,8 +118,8 @@ class Client:
         offset = urlparse.parse_qs(parsed.query).get("offset") or None
         return offset and offset[0]
 
-    @route("POST", "playlists")
-    async def post_playlist(self, data: PlaylistCreateRequest): ...
+    @route("POST", "playlists", response_model=scm.Playlist)
+    async def post_playlist(self, data: PlaylistCreateRequest) -> scm.Playlist: ...
 
     @route("GET", "playlists/{playlist_id}")
     async def get_playlist(self, playlist_id: int, show_tracks: bool = True): ...
@@ -182,20 +182,5 @@ class Client:
     @route("GET", "me/artist-shortcuts/stories/{user_urn}", response_model=scm.ArtistShortcutStories)
     async def get_artist_shortcut_stories(self, user_urn: str) -> scm.ArtistShortcutStories: ...
 
-
-def fetch_collection_response(endpoint: Callable, limit: int = 20, **kwargs):
-    offset = 0
-    items = []
-    while True:
-        try:
-            response = asyncio.run(endpoint(**kwargs, limit=limit, offset=offset))
-            items.extend(response.collection)
-            if not response.next_href:
-                break
-            offset = Client.get_next_offset(response.next_href)
-            logger.info("Using next offset", offset)
-        except Exception as e:
-            logger.error(e)
-            raise e
-
-    return items
+    @route("PUT", "playlists/{playlist_urn}/artwork", response_model=PlaylistUpdateImageResponse)
+    async def update_playlist_image(self, playlist_urn: str, data: PlaylistUpdateImageRequest): ...

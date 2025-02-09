@@ -12,7 +12,15 @@ class PlaylistCreate(BaseModel):
     description: str
     sharing: Literal["public", "private"] = "private"
     tracks: list[TrackID] = []
-    tag_list: str
+    tag_list: str = ""
+
+
+class PlaylistUpdateImageRequest(BaseModel):
+    image_data: str
+
+
+class PlaylistUpdateImageResponse(BaseModel):
+    artwork_url: str
 
 
 class Playlist(BaseModel):
