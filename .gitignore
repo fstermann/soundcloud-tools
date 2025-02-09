@@ -2,3 +2,7 @@
 .env
 *.py[co]
 ca.crt
+
+# Essentia model weights
+*.pb 
+*.onnx
