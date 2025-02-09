@@ -157,6 +157,7 @@ def remove_free_dl(title: str):
 
 def clean_title(title: str):
     title = remove_free_dl(title)
+    title = title.removeprefix("- ").removeprefix("– ")
     if "(" in title:
         return title.strip()
     first_dash = title.find("- ")
