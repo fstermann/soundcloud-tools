@@ -66,7 +66,7 @@ def route(method: str, path: str, response_model: BaseModel | None = None):
             try:
                 response_data = response.json()
             except json.decoder.JSONDecodeError:
-                logger.error(f"Failed to decode response (status: {response.status_code})\n{response.text}")
+                logger.error(f"Failed to decode response (status: {response.status_code})\n{response.content}")
                 return
             if not response_model:
                 return response_data
@@ -87,7 +87,7 @@ class Client:
         }
         self.params = {
             "client_id": get_settings().client_id,
-            "app_version": "1735826482",
+            "app_version": "1739181955",
             "app_locale": "en",
         }
         self.proxies = {"https://": "https://" + get_settings().proxy} if get_settings().proxy else {}
