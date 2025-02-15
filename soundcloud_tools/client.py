@@ -1,6 +1,7 @@
 import json
 import logging
 import urllib.parse as urlparse
+import warnings
 from typing import Any, Callable
 
 import requests
@@ -14,6 +15,7 @@ from soundcloud_tools.settings import get_settings
 from soundcloud_tools.utils import generate_random_user_agent, get_default_kwargs
 
 logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore", message="Unverified HTTPS request is being made")
 
 
 class SplitParams(BaseModel):

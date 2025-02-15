@@ -10,6 +10,7 @@ from soundcloud_tools.models.comment import Comment
 from soundcloud_tools.models.playlist import PlaylistCreate
 from soundcloud_tools.models.request import PlaylistCreateRequest
 from soundcloud_tools.models.stream import Stream, StreamItem, StreamItemType
+from soundcloud_tools.models.track import Track
 from soundcloud_tools.utils import Weekday, get_scheduled_time, get_week_of_month
 
 logger = logging.getLogger(__name__)
@@ -100,17 +101,17 @@ async def get_comments(
     return all_comments
 
 
-def get_track_ids_from_collections(collections: list[StreamItem | Comment], types: list[Items]) -> set[int]:
+def get_tracks_from_collections(collections: list[StreamItem | Comment], types: list[Items]) -> set[Track]:
     track_ids = set()
     for c in collections:
         if c.type not in types:
             continue
         if c.type.startswith("playlist"):
-            track_ids |= {t.id for t in c.playlist.tracks}
+            track_ids |= set(c.playlist.tracks)
         if c.type.startswith("track"):
-            track_ids.add(c.track.id)
+            track_ids.add(c.track)
         if c.type.startswith("comment"):
-            track_ids.add(c.track_id)
+            track_ids.add(c.track)
     return track_ids
 
 
@@ -126,16 +127,18 @@ def get_track_ids_from_stories(stories: list[Story], types: list[StoryType]) -> 
     return track_ids
 
 
-async def get_tracks_ids_in_timespan(client: Client, user_id: int, start: datetime, end: datetime, types: list[Items]):
-    track_ids = set()
+async def get_tracks_ids_in_timespan(
+    client: Client, user_id: int, start: datetime, end: datetime, types: list[Items]
+) -> set[Track]:
+    tracks = set()
     if "track" in types or "track-repost" in types:
         reposts = await get_reposts(client, user_id=user_id, start=start, end=end, exclude_own=True)
-        track_ids |= get_track_ids_from_collections(reposts, types=types)
+        tracks |= get_tracks_from_collections(reposts, types=types)
     if "comment" in types:
         collections = await get_comments(client, user_id, start=start, end=end, exclude_own=True)
-        track_ids |= get_track_ids_from_collections(collections, types=types)
-    logger.info(f"Found {len(track_ids)} tracks")
-    return track_ids
+        tracks |= get_tracks_from_collections(collections, types=types)
+    logger.info(f"Found {len(tracks)} tracks")
+    return tracks
 
 
 async def create_weekly_favorite_playlist(
@@ -145,6 +148,7 @@ async def create_weekly_favorite_playlist(
     week: int = 0,
     exclude_liked: bool = False,
     half: Literal["first", "second"] | None = None,
+    max_duration: int = 600,  # 10 minutes
 ):
     logger.info(f"Creating weekly favorite playlist for {week = } and {types = }")
     start = get_scheduled_time(Weekday.SUNDAY, weeks=week - 1)
@@ -158,7 +162,9 @@ async def create_weekly_favorite_playlist(
     logger.info(f"Collecting favorites for {start.date()} - {end.date()}")
     month, week_of_month = start.strftime("%b"), get_week_of_month(start)
 
-    track_ids = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
+    tracks = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
+    track_ids = {track.id for track in tracks if getattr(track, "duration_s", 0) < max_duration}
+    logger.info(f"Found {len(track_ids)} tracks with duration < {max_duration}")
     if exclude_liked:
         logger.info("Removing likes tracks")
         liked_tracks = await get_all_user_likes(client, user_id=user_id)
