@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 from starlette.routing import compile_path
 
 from soundcloud_tools import models as scm
-from soundcloud_tools.models.playlist import PlaylistUpdateImageRequest, PlaylistUpdateImageResponse
+from soundcloud_tools.models.playlist import PlaylistUpdateImageRequest, PlaylistUpdateImageResponse, UserPlaylists
 from soundcloud_tools.models.request import PlaylistCreateRequest
 from soundcloud_tools.settings import get_settings
 from soundcloud_tools.utils import generate_random_user_agent, get_default_kwargs
@@ -186,3 +186,12 @@ class Client:
 
     @route("PUT", "playlists/{playlist_urn}/artwork", response_model=PlaylistUpdateImageResponse)
     async def update_playlist_image(self, playlist_urn: str, data: PlaylistUpdateImageRequest): ...
+
+    @route("GET", "users/{user_id}/playlists_without_albums", response_model=UserPlaylists)
+    async def get_user_playlists(
+        self,
+        user_id: int,
+        offset: int = 0,
+        limit: int = 12,
+        linked_partitioning: bool = True,
+    ) -> UserPlaylists: ...

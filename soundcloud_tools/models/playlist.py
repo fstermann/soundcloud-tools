@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from soundcloud_tools.models.track import Track, TrackID, TrackSlim
 from soundcloud_tools.models.user import User
@@ -69,3 +69,68 @@ class Playlist(BaseModel):
     user: User
     tracks: list[Track | TrackSlim] = []
     track_count: int
+
+
+class Seed(BaseModel):
+    urn: str
+    permalink: str
+
+
+class SystemPlaylist(BaseModel):
+    urn: str
+    query_urn: str | None
+    permalink: str
+    permalink_url: str
+    title: str
+    description: str
+    short_title: str
+    short_description: str
+    tracking_feature_name: str
+    playlist_type: str
+    last_updated: str | None
+    artwork_url: str
+    calculated_artwork_url: str
+    likes_count: int
+    seed: Seed | None = None
+    tracks: list[TrackSlim]
+    is_public: bool
+    made_for: User | None
+    user: User
+    kind: Literal["system-playlist"]
+    id: str
+
+
+class UserPlaylistBaseItem(BaseModel):
+    created_at: datetime
+    type: str
+    user: User
+    uuid: str
+    caption: str | None = None
+
+
+class UserPlaylistItem(UserPlaylistBaseItem):
+    playlist: Playlist
+    type: Literal["playlist"]
+
+
+class UserPlaylistLikeItem(UserPlaylistBaseItem):
+    playlist: Playlist
+    type: Literal["playlist-like"]
+
+
+class UserSystemPlaylistLikeItem(UserPlaylistBaseItem):
+    system_playlist: SystemPlaylist
+    type: Literal["system-playlist-like"]
+
+
+PlaylistItem = Annotated[
+    Playlist | SystemPlaylist,
+    # UserPlaylistItem | UserPlaylistLikeItem | UserSystemPlaylistLikeItem,
+    Field(discriminator="kind"),
+]
+
+
+class UserPlaylists(BaseModel):
+    collection: list[PlaylistItem]
+    next_href: str | None
+    query_urn: str | None

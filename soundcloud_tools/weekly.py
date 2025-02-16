@@ -101,6 +101,16 @@ async def get_comments(
     return all_comments
 
 
+async def get_recent_weekly_track_ids(client: Client, user_id: int) -> set[int]:
+    playlists = await client.get_user_playlists(user_id=user_id, limit=20)
+    return {
+        track.id
+        for playlist in playlists.collection
+        for track in playlist.tracks
+        if "weekly favorites" in playlist.title.lower()
+    }
+
+
 def get_tracks_from_collections(collections: list[StreamItem | Comment], types: list[Items]) -> set[Track]:
     track_ids = set()
     for c in collections:
@@ -141,6 +151,29 @@ async def get_tracks_ids_in_timespan(
     return tracks
 
 
+def filter_tracks_for_duration(tracks: set[Track], max_duration: int) -> set[Track]:
+    ftracks = {track for track in tracks if getattr(track, "duration_s", 0) < max_duration}
+    logger.info(f"Filtered to {len(ftracks)} tracks with duration < {max_duration}")
+    return ftracks
+
+
+async def filter_tracks_for_seen(client: Client, tracks: set[Track], user_id: int) -> set[Track]:
+    seen_track_ids = await get_recent_weekly_track_ids(client=client, user_id=user_id)
+    logger.info(f"Found {len(seen_track_ids)} seen tracks")
+    ftracks = {track for track in tracks if track.id not in seen_track_ids}
+    logger.info(f"Filtered to {len(ftracks)} unseen tracks")
+    return ftracks
+
+
+async def filter_tracks_for_liked(client: Client, tracks: set[Track], user_id: int) -> set[Track]:
+    logger.info("Removing likes tracks")
+    liked_tracks = await get_all_user_likes(client, user_id=user_id)
+    liked_track_ids = {track.id for track in liked_tracks}
+    ftracks = {track for track in tracks if track.id not in liked_track_ids}
+    logger.info(f"Filtered to {len(ftracks)} tracks after removing liked tracks")
+    return ftracks
+
+
 async def create_weekly_favorite_playlist(
     client: Client,
     user_id: int,
@@ -162,15 +195,14 @@ async def create_weekly_favorite_playlist(
     logger.info(f"Collecting favorites for {start.date()} - {end.date()}")
     month, week_of_month = start.strftime("%b"), get_week_of_month(start)
 
+    # Filter tracks
+    tracks = set()
     tracks = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
-    track_ids = {track.id for track in tracks if getattr(track, "duration_s", 0) < max_duration}
-    logger.info(f"Found {len(track_ids)} tracks with duration < {max_duration}")
+    tracks = filter_tracks_for_duration(tracks=tracks, max_duration=max_duration)
+    tracks = await filter_tracks_for_seen(client=client, tracks=tracks, user_id=user_id)
     if exclude_liked:
-        logger.info("Removing likes tracks")
-        liked_tracks = await get_all_user_likes(client, user_id=user_id)
-        liked_track_ids = {track.id for track in liked_tracks}
-        track_ids = list(set(track_ids) - liked_track_ids)
-        logger.info(f"Found {len(track_ids)} tracks after removing liked tracks")
+        tracks = await filter_tracks_for_liked(client=client, tracks=tracks, user_id=user_id)
+    track_ids = {track.id for track in tracks}
 
     # Create playlist from track_ids
     week_prefix = f"{half.title()} half of " if half else " "
@@ -189,6 +221,6 @@ async def create_weekly_favorite_playlist(
         )
     )
     request = devtools.pformat(playlist.model_dump(exclude={"playlist": {"tracks"}}))
-    logger.info(f"Creating playlist {request} with {len(track_ids)} tracks")
+    logger.info(f"Creating playlist {request} with {len(playlist.playlist.tracks)} tracks")
     await client.post_playlist(data=playlist)
     return track_ids
