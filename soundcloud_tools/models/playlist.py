@@ -1,10 +1,13 @@
+import logging
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from soundcloud_tools.models.track import Track, TrackID, TrackSlim
 from soundcloud_tools.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 class PlaylistCreate(BaseModel):
@@ -13,6 +16,15 @@ class PlaylistCreate(BaseModel):
     sharing: Literal["public", "private"] = "private"
     tracks: list[TrackID] = []
     tag_list: str = ""
+
+    @field_validator("tracks", mode="before")
+    def validate_tracks(cls, tracks: list[TrackID]):
+        if not tracks:
+            raise ValueError("At least one track is required for the playlist")
+        if len(tracks) > 500:
+            logger.warning("Playlist has more than 500 tracks, truncating track list")
+            tracks = tracks[:500]
+        return tracks
 
 
 class PlaylistUpdateImageRequest(BaseModel):
