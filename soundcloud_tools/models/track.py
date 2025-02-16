@@ -67,6 +67,7 @@ class Track(BaseModel):
     downloadable: bool
     download_count: int | None
     duration: int
+    """Duration in milliseconds"""
     full_duration: int
     embeddable_by: str
     genre: str | None = None
@@ -113,3 +114,13 @@ class Track(BaseModel):
     @property
     def artist(self) -> str:
         return (self.publisher_metadata and self.publisher_metadata.artist) or self.user.username
+
+    @property
+    def duration_s(self) -> int:
+        return self.duration // 1000
+
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, Track) and self.id == other.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)
