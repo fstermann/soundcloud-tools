@@ -1,6 +1,15 @@
 from functools import lru_cache
 
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class HypedditSettings(BaseModel):
+    """Configuration for the Hypeddit automation."""
+
+    name: str
+    email: str
+    comment: str = "<3"
 
 
 class Setttings(BaseSettings):
@@ -14,6 +23,7 @@ class Setttings(BaseSettings):
     sc_a_id: str
 
     proxy: str | None = None
+    hypeddit: HypedditSettings
 
 
 @lru_cache(maxsize=1)
