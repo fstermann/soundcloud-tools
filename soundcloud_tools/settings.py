@@ -9,9 +9,9 @@ class Setttings(BaseSettings):
     base_url: str = "https://api-v2.soundcloud.com"
     oauth_token: str
     client_id: str
-    datadome_clientid: str
     user_id: int
-    sc_a_id: str
+    datadome_clientid: str = ""
+    sc_a_id: str = ""
 
     proxy: str | None = None
 
