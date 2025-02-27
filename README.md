@@ -27,10 +27,22 @@ The following environment variables are required and can be set in a `.env` file
 ```
 OAUTH_TOKEN=
 CLIENT_ID=
-DATADOME_CLIENTID=
 USER_ID=
-PROXY=
+# Only required for the weekly workflow
+DATADOME_CLIENTID=
 ```
+
+First, copy the `.env.example` file to `.env`.
+
+To get the first three variables, visit your SoundCloud profile, and search for `tracks?representation` in the network tab. The `USER_ID` and `CLIENT_ID` can be found in the request url, and the `OAUTH_TOKEN` in the request headers.
+
+![Network Tab](assets/network-1.png)
+![Network Tab](assets/network-2.png)
+
+
+The `DATADOME_CLIENTID` can be found similarly by creating a new playlist, and extracting that value from the request in the network tab.
+
+
 
 ## Tools
 
