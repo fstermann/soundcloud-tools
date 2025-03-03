@@ -11,7 +11,8 @@ def main():
 
     pg = st.navigation(
         [
-            st.Page("tools/meta_editor.py"),
+            st.Page("tools/meta_editor.py", title="Meta Editor", icon=":material/edit:"),
+            st.Page("tools/like_explorer.py", title="Like Explorer", icon=":material/favorite:"),
         ]
     )
     pg.run()
