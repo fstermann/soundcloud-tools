@@ -4,7 +4,6 @@ from typing import Self
 
 import pydub
 import requests
-import streamlit as st
 from mutagen.aiff import AIFF
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import APIC, ID3, TCON, TDRC, TDRL, TIT2, TPE1
@@ -87,7 +86,6 @@ class TrackHandler(BaseModel):
         return [cls(root_folder=root_folder, file=f) for f in load_tracks(root_folder)]
 
     @classmethod
-    @st.cache_data
     def load_track_infos(cls, folder: Path):
         return [t.track_info for t in cls.load_all(folder)]
 

@@ -8,13 +8,13 @@ import streamlit as st
 from mutagen.id3 import APIC, ID3FileType
 from streamlit import session_state as sst
 
+from soundcloud_tools.handler.track import TrackHandler, TrackInfo
 from soundcloud_tools.models import Track
 from soundcloud_tools.predict.base import Predictor
 from soundcloud_tools.predict.bpm import BPMPredictor
 from soundcloud_tools.predict.style import StylePredictor
 from soundcloud_tools.streamlit.client import get_client
 from soundcloud_tools.streamlit.file_selection import file_selector
-from soundcloud_tools.streamlit.track_handler import TrackHandler, TrackInfo
 from soundcloud_tools.streamlit.utils import (
     apply_to_sst,
     bold,

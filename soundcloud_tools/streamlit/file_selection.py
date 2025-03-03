@@ -6,7 +6,8 @@ from typing import Callable
 import streamlit as st
 from streamlit import session_state as sst
 
-from soundcloud_tools.streamlit.track_handler import TrackHandler
+from soundcloud_tools.handler.folder import FolderHandler
+from soundcloud_tools.handler.track import TrackHandler
 from soundcloud_tools.streamlit.utils import reset_track_info_sst, table
 from soundcloud_tools.utils import load_tracks
 
@@ -46,13 +47,34 @@ def render_folder_selection() -> Path:
         st.error("Invalid root folder")
         st.stop()
 
-    paths = {
-        "Prepare": root_folder / "prepare",
-        "Collection": root_folder / "collection",
-        "Cleaned": root_folder / "cleaned",
-        "Direct": root_folder,
+    modes = {
+        "prepare": "Prepare",
+        "collection": "Collection",
+        "cleaned": "Cleaned",
+        "": "Direct",
     }
-    return root_folder, paths[st.radio("Mode", paths, key="mode")]
+    mode = st.radio("Mode", modes, key="mode", format_func=modes.get)
+    handler = FolderHandler(folder=root_folder / mode)
+    if mode == "cleaned":
+        if handler.has_audio_files and st.button("Move All"):
+            render_file_moving(handler, target=root_folder / "collection")
+    if mode == "prepare":
+        handler = FolderHandler(folder=Path.home() / "Downloads")
+        filters = [lambda f: FolderHandler.last_modified(f).date() == date.today()]
+        if handler.collect_audio_files(*filters) and st.button("Collect All"):
+            render_file_moving(handler, target=root_folder / "prepare", filters=filters)
+    return root_folder, root_folder / mode
+
+
+@st.dialog("Move Files", width="large")
+def render_file_moving(handler: FolderHandler, target: Path, filters: list[Callable[[Path], bool]] | None = None):
+    filters = filters or []
+    files = handler.collect_audio_files(*filters)
+    st.write(f"Are you sure you want to move {len(files)} files from\n\n`{handler.folder}`\n\nto\n\n`{target}`?")
+    st.expander("Files").write(files)
+    if st.button("Move All"):
+        handler.move_all_audio_files(target, *filters)
+        st.rerun()
 
 
 def render_filters(path) -> list[int] | None:
