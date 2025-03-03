@@ -31,10 +31,6 @@ def generate_css(**kwargs):
     return ";".join(f"{k.replace('_', '-')}:{v}" for k, v in kwargs.items())
 
 
-def bold(text: str) -> str:
-    return f"__{text}__" if text else text
-
-
 def render_embedded_track(track: Track):
     options = {
         "url": f"https://api.soundcloud.com/tracks/{track.id}",

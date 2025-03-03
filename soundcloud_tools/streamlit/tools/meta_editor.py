@@ -1,8 +1,8 @@
 import asyncio
 import logging
-import re
 from copy import copy
 from pathlib import Path
+from typing import Any
 
 import streamlit as st
 from mutagen.id3 import APIC, ID3FileType
@@ -15,13 +15,8 @@ from soundcloud_tools.predict.bpm import BPMPredictor
 from soundcloud_tools.predict.style import StylePredictor
 from soundcloud_tools.streamlit.client import get_client
 from soundcloud_tools.streamlit.file_selection import file_selector
-from soundcloud_tools.streamlit.utils import (
-    apply_to_sst,
-    bold,
-    render_embedded_track,
-    reset_track_info_sst,
-    table,
-)
+from soundcloud_tools.streamlit.utils import apply_to_sst, render_embedded_track, reset_track_info_sst, table
+from soundcloud_tools.utils.string import bold, changed_string, clean_artists, clean_title, remove_free_dl, titelize
 
 ARTWORK_WIDTH = 100
 
@@ -148,35 +143,6 @@ def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | 
     with st.expander("Track Metadata"):
         st.write(track)
     return track_info
-
-
-def remove_free_dl(title: str):
-    return re.sub(r"[\(\[\{]\s*free\s*(dl|download)\s*.*?[\)\]\}]", "", title, flags=re.IGNORECASE)
-
-
-def clean_title(title: str):
-    title = remove_free_dl(title)
-    title = title.removeprefix("- ").removeprefix("– ")
-    if "(" in title:
-        return title.strip()
-    first_dash = title.find("- ")
-    if first_dash == -1:
-        return title.strip()
-    return title[first_dash + 1 :].strip()
-
-
-def clean_artists(artists: str) -> str:
-    for seq in {" & ", " and ", " x ", " X "}:
-        artists = artists.replace(seq, ", ")
-    return artists
-
-
-def titelize(string: str) -> str:
-    return string.title().replace("Dj", "DJ")
-
-
-def changed_string(old: str, new: str) -> bool:
-    return " ⚠️ " if old != new else ""
 
 
 def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # noqa: C901
@@ -424,7 +390,7 @@ def modify_track_info(
     )
 
 
-def preparte_table_data(data: dict):
+def render_as_table(data: dict[str, Any]):
     data = [("<b>" + k.replace("_", " ").title() + "</b>", v or "⚠️") for k, v in data.items()]
     table(data)
 
@@ -439,11 +405,11 @@ def render_track_info(track_info: TrackInfo, context: tuple = (None, None)):
         c1, c2, c3 = st.columns(3)
 
     with left_c:
-        table(preparte_table_data(track_info.model_dump(include={"title"})))
+        render_as_table(track_info.model_dump(include={"title"}))
     with c1:
-        table(preparte_table_data(track_info.model_dump(include={"artist", "genre"})))
+        render_as_table(track_info.model_dump(include={"artist", "genre"}))
     with c2:
-        table(preparte_table_data(track_info.model_dump(include={"release_date", "year"})))
+        render_as_table(track_info.model_dump(include={"release_date", "year"}))
     with c3:
         if track_info.artwork:
             st.image(track_info.artwork, width=ARTWORK_WIDTH)
