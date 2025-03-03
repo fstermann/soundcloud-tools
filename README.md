@@ -22,27 +22,25 @@ poetry install
 
 ## Settings
 
-The following environment variables are required and can be set in a `.env` file in the root directory of the project:
+A set of environment variables are required and have to be set in a `.env` file in the root directory of the project.
+You can find a blank [`.env.example`](./.env.example) file that you can copy (`cp .env.example .env`) and fill in the required values.
 
-```
-OAUTH_TOKEN=
-CLIENT_ID=
-USER_ID=
-# Only required for the weekly workflow
-DATADOME_CLIENTID=
-```
+Similarly, if you want to use the GitHub workflow, you have to add the environment variables as secrets in the repository settings.
 
-First, copy the `.env.example` file to `.env`.
 
-To get the first three variables, visit your SoundCloud profile, and search for `tracks?representation` in the network tab. The `USER_ID` and `CLIENT_ID` can be found in the request url, and the `OAUTH_TOKEN` in the request headers.
+<details>
+<summary>How to get the environment variables</summary>
+
+
+To get the first three variables, visit your SoundCloud profile, open up the developer tools menu and search for `tracks?representation` in the network tab. The `USER_ID` and `CLIENT_ID` can be found in the request url, and the `OAUTH_TOKEN` in the request headers.
 
 ![Network Tab](assets/network-1.png)
 ![Network Tab](assets/network-2.png)
 
 
-The `DATADOME_CLIENTID` can be found similarly by creating a new playlist, and extracting that value from the request in the network tab.
+The `DATADOME_CLIENTID` and `SC_A_ID` can be found similarly by creating a new playlist, and extracting that value from the request in the network tab.
 
-
+</details>
 
 ## Tools
 
