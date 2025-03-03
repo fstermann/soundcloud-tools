@@ -45,16 +45,17 @@ The `DATADOME_CLIENTID` and `SC_A_ID` can be found similarly by creating a new p
 ## Tools
 
 The following section describes the tools provided in this repository.
+An interface for the tools can be started by running the following command:
+
+```bash
+poetry run streamlit run soundcloud_tools/streamlit/app.py   
+```
 
 ### MetaEditor
 
 You can use the MetaEditor to edit the metadata of your local tracks.
 It uses the `mutagen` library to edit the metadata of the tracks.
 The editor offers an integrated Soundcloud search to find the correct metadata, including artwork, for your tracks.
-
-```bash
-poetry run streamlit run soundcloud_tools/streamlit/meta_editor.py   
-```
 
 Note that to optimize the workflow, the MetaEditor uses three folders to store the tracks:
 

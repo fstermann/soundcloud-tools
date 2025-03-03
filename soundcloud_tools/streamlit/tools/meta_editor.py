@@ -25,7 +25,6 @@ from soundcloud_tools.streamlit.utils import (
 
 ARTWORK_WIDTH = 100
 
-st.set_page_config(page_title="MetaEditor", page_icon=":material/database:", layout="wide")
 logger = logging.getLogger(__name__)
 
 
@@ -509,5 +508,5 @@ def main():
     render_file(file, root_folder)
 
 
-if __name__ == "__main__":
+if __name__ == "__page__":
     main()
