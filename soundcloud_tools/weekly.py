@@ -1,4 +1,5 @@
 import logging
+from collections import Counter
 from datetime import datetime
 from typing import Literal
 
@@ -39,7 +40,7 @@ async def get_stories(client: Client, start: datetime, end: datetime) -> list[St
     return all_stories
 
 
-async def get_all_user_likes(client: Client, user_id: int):
+async def get_all_user_likes(client: Client, user_id: int) -> list[Track]:
     limit, offset = 200, 0
     all_tracks = []
     while True:
@@ -102,7 +103,7 @@ async def get_comments(
 
 
 async def get_recent_weekly_track_ids(client: Client, user_id: int) -> set[int]:
-    playlists = await client.get_user_playlists(user_id=user_id, limit=20)
+    playlists = await client.get_user_playlists(user_id=user_id, limit=50)
     return {
         track.id
         for playlist in playlists.collection
@@ -111,18 +112,18 @@ async def get_recent_weekly_track_ids(client: Client, user_id: int) -> set[int]:
     }
 
 
-def get_tracks_from_collections(collections: list[StreamItem | Comment], types: list[Items]) -> set[Track]:
-    track_ids = set()
+def get_tracks_from_collections(collections: list[StreamItem | Comment], types: list[Items]) -> list[Track]:
+    tracks = []
     for c in collections:
         if c.type not in types:
             continue
         if c.type.startswith("playlist"):
-            track_ids |= set(c.playlist.tracks)
+            tracks += c.playlist.tracks
         if c.type.startswith("track"):
-            track_ids.add(c.track)
+            tracks.append(c.track)
         if c.type.startswith("comment"):
-            track_ids.add(c.track)
-    return track_ids
+            tracks.append(c.track)
+    return tracks
 
 
 def get_track_ids_from_stories(stories: list[Story], types: list[StoryType]) -> set[int]:
@@ -139,39 +140,44 @@ def get_track_ids_from_stories(stories: list[Story], types: list[StoryType]) -> 
 
 async def get_tracks_ids_in_timespan(
     client: Client, user_id: int, start: datetime, end: datetime, types: list[Items]
-) -> set[Track]:
-    tracks = set()
+) -> list[Track]:
+    tracks = []
     if "track" in types or "track-repost" in types:
         reposts = await get_reposts(client, user_id=user_id, start=start, end=end, exclude_own=True)
-        tracks |= get_tracks_from_collections(reposts, types=types)
+        tracks += get_tracks_from_collections(reposts, types=types)
     if "comment" in types:
         collections = await get_comments(client, user_id, start=start, end=end, exclude_own=True)
-        tracks |= get_tracks_from_collections(collections, types=types)
+        tracks += get_tracks_from_collections(collections, types=types)
     logger.info(f"Found {len(tracks)} tracks")
     return tracks
 
 
-def filter_tracks_for_duration(tracks: set[Track], max_duration: int) -> set[Track]:
-    ftracks = {track for track in tracks if getattr(track, "duration_s", 0) < max_duration}
+def filter_tracks_for_duration(tracks: list[Track], max_duration: int) -> list[Track]:
+    ftracks = [track for track in tracks if getattr(track, "duration_s", 0) < max_duration]
     logger.info(f"Filtered to {len(ftracks)} tracks with duration < {max_duration}")
     return ftracks
 
 
-async def filter_tracks_for_seen(client: Client, tracks: set[Track], user_id: int) -> set[Track]:
+async def filter_tracks_for_seen(client: Client, tracks: list[Track], user_id: int) -> list[Track]:
     seen_track_ids = await get_recent_weekly_track_ids(client=client, user_id=user_id)
     logger.info(f"Found {len(seen_track_ids)} seen tracks")
-    ftracks = {track for track in tracks if track.id not in seen_track_ids}
+    ftracks = [track for track in tracks if track.id not in seen_track_ids]
     logger.info(f"Filtered to {len(ftracks)} unseen tracks")
     return ftracks
 
 
-async def filter_tracks_for_liked(client: Client, tracks: set[Track], user_id: int) -> set[Track]:
+async def filter_tracks_for_liked(client: Client, tracks: list[Track], user_id: int) -> list[Track]:
     logger.info("Removing likes tracks")
     liked_tracks = await get_all_user_likes(client, user_id=user_id)
     liked_track_ids = {track.id for track in liked_tracks}
-    ftracks = {track for track in tracks if track.id not in liked_track_ids}
+    ftracks = [track for track in tracks if track.id not in liked_track_ids]
     logger.info(f"Filtered to {len(ftracks)} tracks after removing liked tracks")
     return ftracks
+
+
+def get_ordered_track_ids(tracks: list[Track]) -> list[int]:
+    track_ids = [track.id for track in tracks]
+    return [track_id for track_id, _ in Counter(track_ids).most_common()]
 
 
 async def create_weekly_favorite_playlist(
@@ -196,13 +202,12 @@ async def create_weekly_favorite_playlist(
     month, week_of_month = start.strftime("%b"), get_week_of_month(start)
 
     # Filter tracks
-    tracks = set()
     tracks = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
     tracks = filter_tracks_for_duration(tracks=tracks, max_duration=max_duration)
     tracks = await filter_tracks_for_seen(client=client, tracks=tracks, user_id=user_id)
     if exclude_liked:
         tracks = await filter_tracks_for_liked(client=client, tracks=tracks, user_id=user_id)
-    track_ids = {track.id for track in tracks}
+    track_ids = get_ordered_track_ids(tracks)
 
     # Create playlist from track_ids
     week_prefix = f"{half.title()} half of " if half else " "
