@@ -47,7 +47,7 @@ class Playlist(BaseModel):
     label_name: str | None = None
     last_modified: datetime
     license: str | None = None
-    likes_count: int
+    likes_count: int | None = None
     managed_by_feeds: bool
     permalink: str
     permalink_url: str
@@ -55,7 +55,7 @@ class Playlist(BaseModel):
     purchase_title: str | None = None
     purchase_url: str | None = None
     release_date: str | None
-    reposts_count: int
+    reposts_count: int | None = None
     secret_token: str | None
     sharing: str
     tag_list: str | None = None
