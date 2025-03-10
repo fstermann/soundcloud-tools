@@ -24,7 +24,7 @@ def remove_free_dl(title: str):
 
 def clean_title(title: str):
     title = title.strip()
-    title.replace("-", "–")
+    title.replace("–", "-")
     title = remove_free_dl(title)
     if "(" in title:
         return title
