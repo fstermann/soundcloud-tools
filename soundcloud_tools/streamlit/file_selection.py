@@ -72,7 +72,7 @@ def render_file_moving(handler: FolderHandler, target: Path, filters: list[Calla
     files = handler.collect_audio_files(*filters)
     st.write(f"Are you sure you want to move {len(files)} files from\n\n`{handler.folder}`\n\nto\n\n`{target}`?")
     st.expander("Files").write(files)
-    if st.button("Move All"):
+    if st.button("Move All", key="move_all_dialog"):
         handler.move_all_audio_files(target, *filters)
         st.rerun()
 
