@@ -61,7 +61,7 @@ class TrackInfo(BaseModel):
             genre=track.genre or "",
             year=track.display_date.year,
             release_date=track.display_date.strftime("%Y-%m-%d"),
-            artwork_url=track.hq_artwork_url,
+            artwork_url=track.hq_artwork_url or track.user.hq_avatar_url,
         )
 
     @property
