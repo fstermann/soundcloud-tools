@@ -25,6 +25,22 @@ If `ffmpeg` is not installed on your system, you can install it via Homebrew by 
 brew install ffmpeg
 ```
 
+### `sct` Script
+
+The `sct` script contains shortcuts to the tools provided in this repository.
+For easier access to the commands, add the following to your `.bashrc` or `.zshrc`. Otherwise, _all following commands have to be prefixed with `./`_:
+
+```bash
+alias sct="./sct"
+```
+
+#### Commands
+
+```bash
+sct app # Run the Streamlit application
+sct weekly # Run the weekly workflow
+```
+
 ## Settings
 
 A set of environment variables are required and have to be set in a `.env` file in the root directory of the project.
@@ -82,7 +98,7 @@ Note that to optimize the workflow, the MetaEditor uses three folders to store t
 ### Favorite Archiver
 
 ```bash
-poetry run python soundcloud_tools
+poetry run soundcloud_tools
 ```
 
 __Options__
