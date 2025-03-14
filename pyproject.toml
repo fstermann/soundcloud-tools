@@ -26,6 +26,7 @@ pydub = "^0.25.1"
 plotly = "^5.24.1"
 mutagen = "^1.47.0"
 essentia = "^2.1b6.dev1177"
+essentia-tensorflow = "^2.1b6.dev1177"
 
 [tool.poetry.scripts]
 soundcloud_tools = 'soundcloud_tools.__main__:main_script'
