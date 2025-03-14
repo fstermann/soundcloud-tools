@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import urllib.parse as urlparse
 import warnings
 from typing import Any, Callable
@@ -120,6 +121,12 @@ class Client:
         offset = urlparse.parse_qs(parsed.query).get("offset") or None
         return offset and offset[0]
 
+    async def get_track_id(self, url: str) -> int | None:
+        regex = r'content="soundcloud://sounds:(\d+)"'
+        response = await self.make_request("GET", url)
+        match = re.search(regex, response.text)
+        return int(match.group(1)) if match else None
+
     @route("POST", "playlists", response_model=scm.Playlist)
     async def post_playlist(self, data: PlaylistCreateRequest) -> scm.Playlist: ...
 
@@ -159,7 +166,7 @@ class Client:
     @route("GET", "users/{user_id}/followers/ids")
     async def get_user_followers_ids(self, user_id: int, limit: int = 5000, linked_partitioning: bool = True): ...
 
-    @route("GET", "tracks/{track_id}")
+    @route("GET", "tracks/{track_id}", response_model=scm.Track)
     async def get_track(self, track_id: int): ...
 
     @route("GET", "stream", response_model=scm.Stream)
