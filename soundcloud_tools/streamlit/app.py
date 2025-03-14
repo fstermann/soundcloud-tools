@@ -1,7 +1,11 @@
+import logging
+
 import streamlit as st
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
+
     st.set_page_config(
         page_title="SoundCloud Tools",
         page_icon=":material/cloud:",
