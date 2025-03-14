@@ -175,7 +175,7 @@ class TrackHandler(BaseModel):
             track.delall("APIC")
             track.add(
                 APIC(
-                    encoding=0,
+                    encoding=3,
                     mime="image/jpeg",
                     type=3,
                     desc="Cover",
