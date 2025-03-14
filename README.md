@@ -16,9 +16,14 @@ Another tool is the __MetaEditor__, which allows you to edit the metadata of you
 
 ```bash
 pip install poetry
-poetry install
+poetry install --with editor
 ```
 
+If `ffmpeg` is not installed on your system, you can install it via Homebrew by running:
+
+```bash
+brew install ffmpeg
+```
 
 ## Settings
 
@@ -32,13 +37,13 @@ Similarly, if you want to use the GitHub workflow, you have to add the environme
 <summary>How to get the environment variables</summary>
 
 
-To get the first three variables, visit your SoundCloud profile, open up the developer tools menu and search for `tracks?representation` in the network tab. The `USER_ID` and `CLIENT_ID` can be found in the request url, and the `OAUTH_TOKEN` in the request headers.
+To get the first three variables, visit your SoundCloud profile, open up the developer tools menu, reload the page and search for `tracks?representation` in the network tab. The `USER_ID` and `CLIENT_ID` can be found in the request url, and the `OAUTH_TOKEN` in the request headers.
 
 ![Network Tab](assets/network-1.png)
 ![Network Tab](assets/network-2.png)
 
 
-The `DATADOME_CLIENTID` and `SC_A_ID` can be found similarly by creating a new playlist, and extracting that value from the request in the network tab.
+The `DATADOME_CLIENTID` and `SC_A_ID` can be found similarly by creating a new playlist, and extracting that value from the request that is made in the network tab (`POST` to the `/playlists` endpoint).
 
 </details>
 
