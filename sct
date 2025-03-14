@@ -1,4 +1,5 @@
 #!/bin/bash
+# To enable the script, execute: chmod +x sct
 
 app() {
     poetry run streamlit run soundcloud_tools/streamlit/app.py

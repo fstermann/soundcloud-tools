@@ -34,6 +34,12 @@ For easier access to the commands, add the following to your `.bashrc` or `.zshr
 alias sct="./sct"
 ```
 
+Execute the following command to make the script executable:
+
+```bash
+chmod +x sct
+```
+
 #### Commands
 
 ```bash
