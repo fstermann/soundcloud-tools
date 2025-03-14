@@ -88,19 +88,25 @@ def render_file(file: Path, root_folder: Path):
             st.write(tag, handler.track.tags[tag])
 
 
-def copy_track_info(track_info: TrackInfo):
-    sst.ti_title = track_info.title
-    sst.ti_artist = track_info.artist_str
-    sst.ti_genre = track_info.genre
-    sst.ti_year = track_info.year
-    sst.ti_release_date = track_info.release_date
+def copy_track_info(track_info: TrackInfo, only_missing: bool = False):
+    state_info_map = {
+        "ti_title": track_info.title,
+        "ti_artist": track_info.artist_str,
+        "ti_genre": track_info.genre,
+        "ti_year": track_info.year,
+        "ti_release_date": track_info.release_date,
+    }
+    for key, value in state_info_map.items():
+        if only_missing and sst.get(key):
+            continue
+        sst[key] = value
 
 
 def copy_artwork(artwork_url: str):
     sst.ti_artwork_url = artwork_url
 
 
-def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | None:
+def render_soundcloud_search(query: str) -> TrackInfo | None:
     st.write("__:material/cloud: Soundcloud Search__")
     if not st.toggle("Enable", value=True):
         return None
@@ -146,7 +152,9 @@ def render_soundcloud_search(query: str, autocopy: bool = False) -> TrackInfo | 
 
 
 def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # noqa: C901
-    cols = st.columns(3)
+    cols = st.columns(4)
+    if handler.mp3_file.exists():
+        st.warning("File already exists in export folder")
     cols[0].button(
         ":material/cloud_download:",
         help="Copy complete metadata from Soundcloud",
@@ -156,24 +164,22 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
         disabled=sc_track_info is None,
         use_container_width=True,
     )
-    with cols[1]:
-        if st.button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
-            delete_file(handler)
 
-    if handler.track_info.filename != handler.file.stem:
-        if st.button(
-            "Rename File",
-            key="rename",
-            use_container_width=True,
-            help=f"Filename does not match track info, rename to '{handler.track_info.filename}'",
-        ):
-            st.success("Renamed Successfully")
-            sst.new_track_name = handler.rename(handler.track_info.filename)
-            st.rerun()
+    if cols[1].button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
+        delete_file(handler)
 
-    if handler.mp3_file.exists():
-        st.warning("File already exists in export folder")
     if cols[2].button(
+        ":material/signature:",
+        key="rename",
+        use_container_width=True,
+        disabled=handler.track_info.filename == handler.file.stem,
+        help=f"Filename does not match track info, rename to '{handler.track_info.filename}'",
+    ):
+        cols[2].success("Renamed Successfully")
+        sst.new_track_name = handler.rename(handler.track_info.filename)
+        st.rerun()
+
+    if cols[3].button(
         ":material/done_all:",
         help=(
             f"Track has {len(handler.covers)} covers, "
@@ -184,19 +190,19 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
         use_container_width=True,
     ):
         with st.spinner("Finalizing"):
-            match handler.file.suffix:
-                case ".mp3":
-                    handler.move_to_cleaned()
-                case _:
-                    handler.convert_to_mp3()
-                    handler.add_mp3_info()
-                    handler.archive()
+            if handler.file.suffix == ".mp3":
+                handler.move_to_cleaned()
+            else:
+                handler.convert_to_mp3()
+                handler.add_mp3_info()
+                handler.archive()
 
         st.success("Finalized Successfully")
         reset_track_info_sst()
         st.rerun()
 
-    if st.checkbox(
+    cols = st.columns(2)
+    if cols[0].checkbox(
         ":material/cleaning_services: Auto-Clean",
         value=False,
         key="auto_clean",
@@ -207,7 +213,7 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
     ):
         apply_to_sst(clean_title, "ti_title")()
         apply_to_sst(clean_artists, "ti_artist")()
-    if st.checkbox(
+    if cols[0].checkbox(
         ":material/arrow_upward: Auto-Titelize",
         value=False,
         key="auto_titelize",
@@ -215,7 +221,7 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
     ):
         apply_to_sst(titelize, "ti_title")()
         apply_to_sst(titelize, "ti_artist")()
-    if st.checkbox(
+    if cols[1].checkbox(
         ":material/add_photo_alternate: Auto-Copy Artwork",
         value=False,
         key="auto_copy_artwork",
@@ -223,6 +229,14 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
     ):
         if not handler.track_info.artwork and sc_track_info:
             copy_artwork(sc_track_info.artwork_url)
+    if cols[1].checkbox(
+        ":material/cloud_download: Auto-Copy Metadata",
+        value=False,
+        key="auto_copy_metadata",
+        help="Automatically copy metadata if not present",
+    ):
+        if sc_track_info:
+            copy_track_info(sc_track_info, only_missing=True)
 
 
 def modify_track_info(
