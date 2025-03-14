@@ -111,20 +111,28 @@ def render_soundcloud_search(query: str) -> TrackInfo | None:
     if not st.toggle("Enable", value=True):
         return None
     query = st.text_input("Search", query)
-    sst.setdefault("search_result", {})
-    sst.search_result[query] = asyncio.run(get_client().search(q=query))
-    if not (result := sst.search_result.get(query)):
-        return None
-
+    url_ph = st.empty()
     st.divider()
     track_ph = st.container(border=True)
+    if track_url := url_ph.text_input("Url", key="ti_search_url"):
+        if not (track_id := asyncio.run(get_client().get_track_id(url=track_url))):
+            st.error("Could not find track id from url")
+            return None
+        if not (track := asyncio.run(get_client().get_track(track_id=track_id))):
+            st.error("Track with id=`{track_id}` not found")
+            return None
+    else:
+        sst.setdefault("search_result", {})
+        sst.search_result[query] = asyncio.run(get_client().search(q=query))
+        if not (result := sst.search_result.get(query)):
+            return None
 
-    tracks: list[Track] = [track for track in result.collection if track.kind == "track"]
-    if not tracks:
-        st.warning("No tracks found")
-        return None
+        tracks: list[Track] = [track for track in result.collection if track.kind == "track"]
+        if not tracks:
+            st.warning("No tracks found")
+            return None
 
-    track = st.radio("Tracks", tracks, format_func=lambda t: f"[{t.title} - {t.user.username}]({t.permalink_url})")
+        track = st.radio("Tracks", tracks, format_func=lambda t: f"[{t.title} - {t.user.username}]({t.permalink_url})")
 
     st.divider()
 
@@ -152,7 +160,7 @@ def render_soundcloud_search(query: str) -> TrackInfo | None:
 
 
 def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # noqa: C901
-    cols = st.columns(4)
+    cols = st.columns(5)
     if handler.mp3_file.exists():
         st.warning("File already exists in export folder")
     cols[0].button(
@@ -165,21 +173,23 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
         use_container_width=True,
     )
 
-    if cols[1].button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
+    cols[1].button(":material/refresh:")
+
+    if cols[2].button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
         delete_file(handler)
 
-    if cols[2].button(
+    if cols[3].button(
         ":material/signature:",
         key="rename",
         use_container_width=True,
         disabled=handler.track_info.filename == handler.file.stem,
         help=f"Filename does not match track info, rename to '{handler.track_info.filename}'",
     ):
-        cols[2].success("Renamed Successfully")
+        cols[3].success("Renamed Successfully")
         sst.new_track_name = handler.rename(handler.track_info.filename)
         st.rerun()
 
-    if cols[3].button(
+    cols[4].button(
         ":material/done_all:",
         help=(
             f"Track has {len(handler.covers)} covers, "
@@ -188,18 +198,9 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
         ),
         disabled=len(handler.covers) != 1 or not handler.track_info.complete,
         use_container_width=True,
-    ):
-        with st.spinner("Finalizing"):
-            if handler.file.suffix == ".mp3":
-                handler.move_to_cleaned()
-            else:
-                handler.convert_to_mp3()
-                handler.add_mp3_info()
-                handler.archive()
-
-        st.success("Finalized Successfully")
-        reset_track_info_sst()
-        st.rerun()
+        on_click=finalize,
+        args=(handler,),
+    )
 
     cols = st.columns(2)
     if cols[0].checkbox(
@@ -237,6 +238,17 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # 
     ):
         if sc_track_info:
             copy_track_info(sc_track_info, only_missing=True)
+
+
+def finalize(handler: TrackHandler):
+    with st.spinner("Finalizing"):
+        if handler.file.suffix == ".mp3":
+            handler.move_to_cleaned()
+        else:
+            handler.convert_to_mp3()
+            handler.add_mp3_info()
+            handler.archive()
+    reset_track_info_sst()
 
 
 def modify_track_info(
@@ -295,12 +307,6 @@ def modify_track_info(
             key="copy_artists",
             disabled=sc_track_info is None,
         )
-        artist = c2.text_input(
-            "Artist",
-            track_info.artist_str,
-            key="ti_artist",
-            label_visibility="collapsed",
-        )
         c1.button(
             ":material/cleaning_services:",
             help="Clean",
@@ -315,7 +321,19 @@ def modify_track_info(
             on_click=apply_to_sst(titelize, "ti_artist"),
             use_container_width=True,
         )
+        with c1.popover(":material/groups:"):
+            artist_options = sc_track_info.artist_options if sc_track_info else set()
+            if artist := sst.get("ti_artist"):
+                artist_options |= {artist}
+            for artist in artist_options:
+                st.button(artist, key=f"artist_option_{artist}", on_click=sst.__setitem__, args=("ti_artist", artist))
 
+        artist = c2.text_input(
+            "Artist",
+            track_info.artist_str,
+            key="ti_artist",
+            label_visibility="collapsed",
+        )
         artists = [a.strip() for a in artist.split(",")]
         if len(artists) == 1:
             artists = artists[0]

@@ -33,6 +33,8 @@ class TrackInfo(BaseModel):
     artwork: bytes | None = None
     artwork_url: str | None = None
 
+    artist_options: set[str] = []
+
     @model_validator(mode="after")
     def check_artwork_url(self):
         if self.artwork_url and not self.artwork:
@@ -54,14 +56,22 @@ class TrackInfo(BaseModel):
 
     @classmethod
     def from_sc_track(cls, track: Track) -> Self:
-        artists = (track.publisher_metadata and track.publisher_metadata.artist) or track.user.username
+        artist_options = {
+            track.publisher_metadata and track.publisher_metadata.artist,
+            track.user.username,
+            track.title.split(" - ")[0],
+        }
+        most_likely_artist = sorted(
+            artist_options, key=lambda a: int(a in track.title) + int(a in track.title.split(" - ")[0]), reverse=True
+        )
         return cls(
             title=track.title,
-            artist=artists,
+            artist=(most_likely_artist and most_likely_artist[0]) or "",
             genre=track.genre or "",
             year=track.display_date.year,
             release_date=track.display_date.strftime("%Y-%m-%d"),
             artwork_url=track.hq_artwork_url or track.user.hq_avatar_url,
+            artist_options={a for a in artist_options if a},
         )
 
     @property
