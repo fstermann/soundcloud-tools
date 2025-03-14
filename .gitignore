@@ -4,5 +4,5 @@
 ca.crt
 
 # Essentia model weights
-*.pb 
+*.pb
 *.onnx

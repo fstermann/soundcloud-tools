@@ -39,7 +39,7 @@ def get_classes_from_predictions(predictions) -> list[tuple[str, float]]:
     return out
 
 
-def clean_electronic_classes(classes: list[str]) -> list[str]:
+def clean_electronic_classes(classes: list[tuple[str, float]]) -> list[tuple[str, float]]:
     return [(c.removeprefix("Electronic---"), prob) for c, prob in classes]
 
 

@@ -32,7 +32,7 @@ def search_users(user_query: str) -> list[User]:
 
 @st.cache_data(show_spinner="Fetching tracks", hash_funcs={"builtins.method": str})
 def fetch_collection_response(endpoint: Callable, limit: int = 100, **kwargs) -> list[Repost] | list[Track]:
-    offset = 0
+    offset: int | None = 0
     items = []
     while True:
         try:
@@ -195,6 +195,9 @@ def main():
 
 
 def update_playlist_image(user: User, playlist_id: int):
+    if not user.hq_avatar_url:
+        st.warning("No avatar image found for the user.")
+        return
     data = requests.get(user.hq_avatar_url).content
     image_data = base64.b64encode(data).decode("utf-8")
     playlist_urn = f"soundcloud:playlists:{playlist_id}"

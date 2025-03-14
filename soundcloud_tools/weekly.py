@@ -41,7 +41,8 @@ async def get_stories(client: Client, start: datetime, end: datetime) -> list[St
 
 
 async def get_all_user_likes(client: Client, user_id: int) -> list[Track]:
-    limit, offset = 200, 0
+    limit = 200
+    offset: int | None = 0
     all_tracks = []
     while True:
         response: Stream = await client.get_user_likes(user_id=user_id, limit=limit, offset=offset)
@@ -57,10 +58,11 @@ async def get_all_user_likes(client: Client, user_id: int) -> list[Track]:
 async def get_reposts(
     client: Client, user_id: int, start: datetime, end: datetime, exclude_own: bool = True
 ) -> list[StreamItem]:
-    limit, offset = 200, 0
+    limit = 200
+    offset: int = 0
     user_urn = f"soundcloud:users:{user_id}"
     n_zero = 0
-    all_reposts = []
+    all_reposts: list[StreamItem] = []
     while True:
         response: Stream = await client.get_stream(user_urn=user_urn, limit=limit, offset=offset)
         reposts = [
@@ -83,10 +85,11 @@ async def get_reposts(
 async def get_comments(
     client: Client, user_id: int, start: datetime, end: datetime, exclude_own: bool = True
 ) -> list[Comment]:
-    all_comments = []
+    all_comments: list[StreamItem] = []
     followings = await client.get_user_followings_ids(user_id=user_id)
     for user_id in followings.collection:
-        limit, offset = 200, 0
+        limit = 200
+        offset: int | None = 0
         while True:
             response: Stream = await client.get_user_comments(user_id=user_id, limit=limit, offset=offset)
             comments = [
@@ -113,7 +116,7 @@ async def get_recent_weekly_track_ids(client: Client, user_id: int) -> set[int]:
 
 
 def get_tracks_from_collections(collections: list[StreamItem | Comment], types: list[Items]) -> list[Track]:
-    tracks = []
+    tracks: list[Track] = []
     for c in collections:
         if c.type not in types:
             continue

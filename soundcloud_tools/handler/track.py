@@ -9,7 +9,7 @@ from mutagen.easyid3 import EasyID3
 from mutagen.id3 import APIC, ID3, TCON, TDRC, TDRL, TIT2, TPE1
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from soundcloud_tools.models import Track
 from soundcloud_tools.utils import convert_to_int, load_tracks
@@ -33,7 +33,7 @@ class TrackInfo(BaseModel):
     artwork: bytes | None = None
     artwork_url: str | None = None
 
-    artist_options: set[str] = []
+    artist_options: set[str] = Field(default_factory=set)
 
     @model_validator(mode="after")
     def check_artwork_url(self):
@@ -62,7 +62,9 @@ class TrackInfo(BaseModel):
             track.title.split(" - ")[0],
         }
         most_likely_artist = sorted(
-            artist_options, key=lambda a: int(a in track.title) + int(a in track.title.split(" - ")[0]), reverse=True
+            artist_options,
+            key=lambda a: int(a in track.title) + int(a in track.title.split(" - ")[0]),  # type: ignore[operator]
+            reverse=True,
         )
         return cls(
             title=track.title,

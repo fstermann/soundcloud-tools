@@ -102,7 +102,7 @@ def copy_track_info(track_info: TrackInfo, only_missing: bool = False):
         sst[key] = value
 
 
-def copy_artwork(artwork_url: str):
+def copy_artwork(artwork_url: str | None):
     sst.ti_artwork_url = artwork_url
 
 
@@ -159,7 +159,7 @@ def render_soundcloud_search(query: str) -> TrackInfo | None:
     return track_info
 
 
-def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo):  # noqa: C901
+def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | None):
     cols = st.columns(5)
     if handler.mp3_file.exists():
         st.warning("File already exists in export folder")
@@ -423,15 +423,15 @@ def modify_track_info(
 
 
 def render_as_table(data: dict[str, Any]):
-    data = [("<b>" + k.replace("_", " ").title() + "</b>", v or "⚠️") for k, v in data.items()]
-    table(data)
+    prepared_data = [("<b>" + k.replace("_", " ").title() + "</b>", v or "⚠️") for k, v in data.items()]
+    table(prepared_data)
 
 
 def render_track_info(track_info: TrackInfo, context: tuple = (None, None)):
     if context:
         left, right = context
         left_c = left.container()
-        c1, c2, c3 = (*left.columns(2), right)
+        c1, c2, c3 = (*left.columns(2), right)  # type: ignore
     else:
         left_c = st.container()
         c1, c2, c3 = st.columns(3)

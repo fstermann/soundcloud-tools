@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 
 def bold(text: str) -> str:
@@ -14,7 +15,7 @@ def titelize(string: str) -> str:
     return re.sub("dj", "DJ", string, flags=re.IGNORECASE)
 
 
-def changed_string(old: str, new: str) -> bool:
+def changed_string(old: Any, new: Any) -> str:
     return " ⚠️ " if old != new else ""
 
 
@@ -24,7 +25,7 @@ def remove_free_dl(title: str):
 
 def clean_title(title: str):
     title = title.strip()
-    title.replace("–", "-")
+    title.replace("–", "-")  # noqa: RUF001
     title = remove_free_dl(title)
     if "(" in title:
         return title

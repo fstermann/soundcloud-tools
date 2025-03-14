@@ -1,3 +1,4 @@
+# mypy: disable-error-code="empty-body"
 import json
 import logging
 import re
@@ -116,10 +117,12 @@ class Client:
         return f"{self.base_url}/{path.format(**path_params)}"
 
     @staticmethod
-    def get_next_offset(href: str) -> str | None:
+    def get_next_offset(href: str | None) -> int | None:
+        if not href:
+            return None
         parsed = urlparse.urlparse(href)
         offset = urlparse.parse_qs(parsed.query).get("offset") or None
-        return offset and offset[0]
+        return offset and int(offset[0])
 
     async def get_track_id(self, url: str) -> int | None:
         regex = r'content="soundcloud://sounds:(\d+)"'
@@ -138,7 +141,7 @@ class Client:
         self,
         user_id: int,
         limit: int = 100,
-        offset: int = 0,
+        offset: str = "0",
         linked_partitioning: bool = True,
     ): ...
     @route("GET", "users/{user_id}/comments", response_model=scm.Comments)
@@ -146,7 +149,7 @@ class Client:
         self,
         user_id: int,
         limit: int = 100,
-        offset: int = 0,
+        offset: str = "0",
         linked_partitioning: bool = True,
         threaded: int = 0,
     ): ...
@@ -156,7 +159,7 @@ class Client:
         self,
         user_id: int,
         limit: int = 100,
-        offset: int = 0,
+        offset: str = "0",
         linked_partitioning: bool = True,
     ): ...
 
@@ -176,7 +179,7 @@ class Client:
         sc_a_id: str = get_settings().sc_a_id,
         promoted_playlist: bool = True,
         limit: int = 100,
-        offset: int = 0,
+        offset: str = "0",
         linked_partitioning: bool = True,
     ): ...
 
@@ -185,7 +188,7 @@ class Client:
 
     @route("GET", "me/artist-shortcuts", response_model=scm.ArtistShortcuts)
     async def get_artist_shortcuts(
-        self, limit: int = 1000, offset: int = 0, linked_partitioning: bool = True
+        self, limit: int = 1000, offset: str = "0", linked_partitioning: bool = True
     ) -> scm.ArtistShortcuts: ...
 
     @route("GET", "me/artist-shortcuts/stories/{user_urn}", response_model=scm.ArtistShortcutStories)
@@ -198,7 +201,7 @@ class Client:
     async def get_user_playlists(
         self,
         user_id: int,
-        offset: int = 0,
+        offset: str = "0",
         limit: int = 12,
         linked_partitioning: bool = True,
     ) -> UserPlaylists: ...

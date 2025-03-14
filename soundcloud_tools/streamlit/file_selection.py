@@ -12,7 +12,7 @@ from soundcloud_tools.streamlit.utils import reset_track_info_sst, table
 from soundcloud_tools.utils import load_tracks
 
 
-def file_selector() -> tuple[Path, Path]:
+def file_selector() -> tuple[Path | None, Path]:
     with st.container(border=True):
         st.subheader(":material/folder: Folder Selection")
         root_folder, path = render_folder_selection()
@@ -38,7 +38,7 @@ def file_selector() -> tuple[Path, Path]:
     return selected_file, root_folder
 
 
-def render_folder_selection() -> Path:
+def render_folder_selection() -> tuple[Path, Path]:
     root_folder = st.text_input("Root folder", value="~/Music/tracks")
     try:
         root_folder = Path(root_folder).expanduser()
@@ -87,10 +87,14 @@ def render_filters(path) -> list[int] | None:
     # Filter components
     search = st.text_input("Search")
     filtered_genres = st.multiselect(
-        "Genres", sorted(genres, key=genres.get, reverse=True), format_func=lambda x: f"{x} ({genres[x]})"
+        "Genres",
+        sorted(genres, key=genres.get, reverse=True),  # type: ignore[arg-type]
+        format_func=lambda x: f"{x} ({genres[x]})",
     )
     filtered_artists = st.multiselect(
-        "Artists", sorted(artists, key=artists.get, reverse=True), format_func=lambda x: f"{x} ({artists[x]})"
+        "Artists",
+        sorted(artists, key=artists.get, reverse=True),  # type: ignore[arg-type]
+        format_func=lambda x: f"{x} ({artists[x]})",
     )
     start_date = st.date_input("Start Date", value=None) or date.min
     end_date = st.date_input("End Date", value=None) or date.today()
