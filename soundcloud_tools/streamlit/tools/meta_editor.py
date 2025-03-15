@@ -280,9 +280,9 @@ def modify_track_info(
             key="copy_title",
             disabled=sc_track_info is None,
         )
+        sst.setdefault("ti_title", track_info.title)
         title = c2.text_input(
             "Title",
-            track_info.title,
             key="ti_title",
             label_visibility="collapsed",
         )
@@ -336,16 +336,16 @@ def modify_track_info(
             on_click=apply_to_sst(titelize, "ti_artist"),
             use_container_width=True,
         )
-        with c1.popover(":material/groups:"):
+        with c1.popover(":material/groups:", use_container_width=True):
             artist_options = sc_track_info.artist_options if sc_track_info else set()
             if artist := sst.get("ti_artist"):
                 artist_options |= {artist}
             for artist in artist_options:
                 st.button(artist, key=f"artist_option_{artist}", on_click=sst.__setitem__, args=("ti_artist", artist))
 
+        sst.setdefault("ti_artist", track_info.artist_str)
         artist = c2.text_input(
             "Artist",
-            track_info.artist_str,
             key="ti_artist",
             label_visibility="collapsed",
         )
@@ -375,7 +375,8 @@ def modify_track_info(
             args=("ti_artwork_url", ""),
             use_container_width=True,
         )
-        artwork_url = c2.text_input("URL", track_info.artwork_url, key="ti_artwork_url")
+        sst.setdefault("ti_artwork_url", track_info.artwork_url)
+        artwork_url = c2.text_input("URL", key="ti_artwork_url")
         if has_artwork:
             c2.warning("Track already has artwork, no need to copy.")
         if not has_artwork and not artwork_url:
@@ -399,7 +400,9 @@ def modify_track_info(
             prob_str = prob and f" ({prob:.2f})"
             if gcols[i].button(f"{genre}{prob_str}", use_container_width=True):
                 sst.ti_genre = genre
-        genre = st.text_input("Genre", track_info.genre, key="ti_genre", label_visibility="collapsed")
+
+        sst.setdefault("ti_genre", track_info.genre)
+        genre = st.text_input("Genre", key="ti_genre", label_visibility="collapsed")
 
     # Dates
     with dates_col.container(border=True):
@@ -416,15 +419,11 @@ def modify_track_info(
             use_container_width=True,
             disabled=sc_track_info is None,
         )
-        year = st.number_input(
-            f"Year{changed_string(track_info.year, sst.get("ti_year"))}",
-            track_info.year,
-            key="ti_year",
-        )
+        sst.setdefault("ti_year", track_info.year)
+        year = st.number_input(f"Year{changed_string(track_info.year, sst.get("ti_year"))}", key="ti_year", step=1)
+        sst.setdefault("ti_release_date", track_info.release_date)
         release_date = st.text_input(
-            f"Release Date{changed_string(track_info.release_date, sst.get("ti_release_date"))}",
-            track_info.release_date,
-            key="ti_release_date",
+            f"Release Date{changed_string(track_info.release_date, sst.get("ti_release_date"))}", key="ti_release_date"
         )
 
     return TrackInfo(
