@@ -8,6 +8,7 @@ from streamlit import session_state as sst
 
 from soundcloud_tools.handler.folder import FolderHandler
 from soundcloud_tools.handler.track import TrackHandler
+from soundcloud_tools.settings import get_settings
 from soundcloud_tools.streamlit.utils import reset_track_info_sst, table
 from soundcloud_tools.utils import load_tracks
 
@@ -39,7 +40,7 @@ def file_selector() -> tuple[Path | None, Path]:
 
 
 def render_folder_selection() -> tuple[Path, Path]:
-    root_folder = st.text_input("Root folder", value="~/Music/tracks")
+    root_folder = st.text_input("Root folder", value=get_settings().root_music_folder)
     try:
         root_folder = Path(root_folder).expanduser()
         assert root_folder.exists()

@@ -15,6 +15,8 @@ class Settings(BaseSettings):
 
     proxy: str | None = None
 
+    root_music_folder: str = "~/Music/tracks"
+
 
 @lru_cache(maxsize=1)
 def get_settings():
