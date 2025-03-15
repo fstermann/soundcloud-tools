@@ -35,7 +35,7 @@ def clean_title(title: str):
     title = remove_double_spaces(title)
     title.replace("–", "-")  # noqa: RUF001
     title = remove_free_dl(title)
-    if "(" in title:
+    if re.match(r"\(.*edit|mix|bootleg|rework.*\)", title, flags=re.IGNORECASE):
         return title
     if match := re.match(r"(.*?)\s*-\s*(.*)", title):
         title = match.group(2)
