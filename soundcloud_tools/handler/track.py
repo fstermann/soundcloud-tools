@@ -54,6 +54,15 @@ class TrackInfo(BaseModel):
         artists = [self.artist] if isinstance(self.artist, str) else self.artist
         return ", ".join(artists)
 
+    @staticmethod
+    def get_artist_sorter(title: str):
+        def sorter(artist: str | None):
+            if not artist:
+                return 0
+            return int(artist in title) + int(artist in title.split(" - ")[0])  # type: ignore[operator]
+
+        return sorter
+
     @classmethod
     def from_sc_track(cls, track: Track) -> Self:
         artist_options = {
@@ -61,11 +70,7 @@ class TrackInfo(BaseModel):
             track.user.username,
             track.title.split(" - ")[0],
         }
-        most_likely_artist = sorted(
-            artist_options,
-            key=lambda a: int(a in track.title) + int(a in track.title.split(" - ")[0]),  # type: ignore[operator]
-            reverse=True,
-        )
+        most_likely_artist = sorted(artist_options, key=cls.get_artist_sorter(track.title), reverse=True)
         return cls(
             title=track.title,
             artist=(most_likely_artist and most_likely_artist[0]) or "",
