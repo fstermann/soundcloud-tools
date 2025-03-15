@@ -16,7 +16,15 @@ from soundcloud_tools.predict.style import StylePredictor
 from soundcloud_tools.streamlit.client import get_client
 from soundcloud_tools.streamlit.file_selection import file_selector
 from soundcloud_tools.streamlit.utils import apply_to_sst, render_embedded_track, reset_track_info_sst, table
-from soundcloud_tools.utils.string import bold, changed_string, clean_artists, clean_title, remove_free_dl, titelize
+from soundcloud_tools.utils.string import (
+    bold,
+    changed_string,
+    clean_artists,
+    clean_title,
+    remove_free_dl,
+    remove_parenthesis,
+    titelize,
+)
 
 ARTWORK_WIDTH = 100
 
@@ -290,6 +298,13 @@ def modify_track_info(
             help="Titelize",
             key="titelize_title",
             on_click=apply_to_sst(titelize, "ti_title"),
+            use_container_width=True,
+        )
+        c1.button(
+            ":material/data_array:",
+            help="Remove `[]` parenthesis",
+            key="remove_parenthesis_title",
+            on_click=apply_to_sst(remove_parenthesis, "ti_title"),
             use_container_width=True,
         )
 

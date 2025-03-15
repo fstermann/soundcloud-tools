@@ -23,8 +23,16 @@ def remove_free_dl(title: str):
     return re.sub(r"[\(\[\{]\s*free\s*(dl|download)\s*.*?[\)\]\}]", "", title, flags=re.IGNORECASE).strip()
 
 
+def remove_parenthesis(title: str):
+    return re.sub(r"\[.*?\]", "", title).strip()
+
+
+def remove_double_spaces(title: str):
+    return re.sub(r"\s+", " ", title).strip()
+
+
 def clean_title(title: str):
-    title = title.strip()
+    title = remove_double_spaces(title)
     title.replace("–", "-")  # noqa: RUF001
     title = remove_free_dl(title)
     if "(" in title:
