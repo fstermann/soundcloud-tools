@@ -334,6 +334,7 @@ class TrackHandler(BaseModel):
             track.add(TPE4(encoding=3, text=info.remix.remixer_str))
             track.add(TIT3(encoding=3, text=info.remix.mix_name))
         if info.comment:
+            track.delall("COMM")
             track.add(COMM(encoding=3, text=info.comment.to_str()))
 
     def add_info(self, info: TrackInfo, artwork: bytes | None = None):
