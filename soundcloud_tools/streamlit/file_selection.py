@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Callable
 
 import streamlit as st
+from pydantic import ValidationError
 from streamlit import session_state as sst
 
 from soundcloud_tools.handler.folder import FolderHandler
@@ -55,7 +56,12 @@ def render_folder_selection() -> tuple[Path, Path]:
         "": "Direct",
     }
     mode = st.radio("Mode", modes, key="mode", format_func=modes.get)
-    handler = FolderHandler(folder=root_folder / mode)
+    try:
+        handler = FolderHandler(folder=root_folder / mode)
+    except ValidationError:
+        st.error("Invalid folder")
+        st.stop()
+
     if mode == "cleaned":
         if handler.has_audio_files and st.button("Move All"):
             render_file_moving(handler, target=root_folder / "collection")
