@@ -31,11 +31,37 @@ def remove_double_spaces(title: str):
     return re.sub(r"\s+", " ", title).strip()
 
 
+def replace_underscores(title: str):
+    return re.sub(r"_", " ", title).strip()
+
+
+def is_remix(title: str) -> bool:
+    return bool(re.search(r"\(.*edit|mix|bootleg|rework.*\)", title, flags=re.IGNORECASE))
+
+
+def get_mix_name(title: str) -> str | None:
+    if match := re.search(r"\((.*)\)", title):
+        return match.group(1).strip()
+    return None
+
+
+def get_first_artist(title: str) -> str | None:
+    if match := re.match(r"(.*?)\s*-\s*(.*)", title):
+        return match.group(1).strip()
+    return None
+
+
+def get_mix_arist(title: str) -> str | None:
+    if mix_name := get_mix_name(title):
+        return re.sub(r"edit|remix|bootleg|rework|mix", "", mix_name, flags=re.IGNORECASE).strip()
+    return None
+
+
 def clean_title(title: str):
     title = remove_double_spaces(title)
     title.replace("–", "-")  # noqa: RUF001
     title = remove_free_dl(title)
-    if re.match(r"\(.*edit|mix|bootleg|rework.*\)", title, flags=re.IGNORECASE):
+    if is_remix(title):
         return title
     if match := re.match(r"(.*?)\s*-\s*(.*)", title):
         title = match.group(2)
