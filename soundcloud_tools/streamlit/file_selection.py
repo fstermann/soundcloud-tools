@@ -23,7 +23,7 @@ def file_selector() -> tuple[Path | None, Path]:
             st.error("No files found")
             st.stop()
 
-        if path.name == "collection":
+        if path.name == "collection" and st.checkbox("Filters", value=False, key="file_filters"):
             if (selected_indices := render_filters(path)) is not None:
                 files = [files[i] for i in selected_indices]
 
