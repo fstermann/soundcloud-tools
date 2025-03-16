@@ -43,7 +43,7 @@ class TrackInfo(BaseModel):
 
     @property
     def filename(self) -> str:
-        return f"{self.artist_str} - {self.title}"
+        return self.title if self.artist_str in self.title else f"{self.artist_str} - {self.title}"
 
     @property
     def complete(self) -> bool:
