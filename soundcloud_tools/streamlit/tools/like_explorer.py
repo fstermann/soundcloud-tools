@@ -249,7 +249,7 @@ def filter_collection(
             not search
             or (
                 search
-                and any(re.match(search, attr, flags=re.IGNORECASE) for attr in (item.track.title, item.track.artist))
+                and any(re.search(search, attr, flags=re.IGNORECASE) for attr in (item.track.title, item.track.artist))
             )
         )
     ]
