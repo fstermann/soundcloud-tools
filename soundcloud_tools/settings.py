@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     root_music_folder: str = "~/Music/tracks"
 
+    version: str = "1.0"
+
 
 @lru_cache(maxsize=1)
 def get_settings():
