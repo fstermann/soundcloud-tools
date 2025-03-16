@@ -134,7 +134,7 @@ def render_file_selection(files: list[Path]) -> Path | None:
         return wrapper
 
     c1.button(
-        ":material/skip_previous: Previous",
+        ":material/skip_previous:",
         key="prev",
         on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index - 1)),
         use_container_width=True,
@@ -152,7 +152,7 @@ def render_file_selection(files: list[Path]) -> Path | None:
         format_func=lambda f: f.name,
     )
     c2.button(
-        "Next :material/skip_next:",
+        ":material/skip_next:",
         key="next",
         on_click=wrap_on_click(lambda: sst.__setitem__("index", sst.index + 1)),
         use_container_width=True,
