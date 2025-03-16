@@ -42,7 +42,7 @@ async def get_stories(client: Client, start: datetime, end: datetime) -> list[St
 
 async def get_all_user_likes(client: Client, user_id: int) -> list[Track]:
     limit = 200
-    offset: int | None = 0
+    offset: str | None = None
     all_tracks = []
     while True:
         response: Stream = await client.get_user_likes(user_id=user_id, limit=limit, offset=offset)
@@ -89,7 +89,7 @@ async def get_comments(
     followings = await client.get_user_followings_ids(user_id=user_id)
     for user_id in followings.collection:
         limit = 200
-        offset: int | None = 0
+        offset: str | None = None
         while True:
             response: Stream = await client.get_user_comments(user_id=user_id, limit=limit, offset=offset)
             comments = [
