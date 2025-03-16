@@ -275,12 +275,13 @@ def comment_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Co
     cols = iter(st.columns(2))
     sst.setdefault("ti_comment", track_info.comment.to_str() if track_info and track_info.comment else "")
     comment = sst.get("ti_comment")
-    next(cols).write(f"__Comment__ {changed_string(track_info.comment.to_str(), comment)}")
+    old_comment = track_info.comment.to_str() if track_info and track_info.comment else ""
+    next(cols).write(f"__Comment__ {changed_string(old_comment, comment)}")
     next(cols).button(
         ":material/cloud_download:",
         key="copy_comments_sc",
         on_click=sst.__setitem__,
-        args=("ti_comment", sc_track_info and sc_track_info.comment.to_str()),
+        args=("ti_comment", sc_track_info and sc_track_info.comment and sc_track_info.comment.to_str()),
         use_container_width=True,
         disabled=sc_track_info is None,
     )

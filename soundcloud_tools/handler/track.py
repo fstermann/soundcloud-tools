@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import date
 from pathlib import Path
@@ -17,6 +18,7 @@ from soundcloud_tools.settings import get_settings
 from soundcloud_tools.utils import convert_to_int, load_tracks
 from soundcloud_tools.utils.string import get_first_artist, get_mix_arist, get_mix_name, is_remix
 
+logger = logging.getLogger(__name__)
 FILETYPE_MAP = {
     ".mp3": MP3,
     ".aif": AIFF,
@@ -43,7 +45,11 @@ class Comment(BaseModel):
         if not string:
             return None
         pairs = [pair.split("=", 1) for pair in re.split(r"(?<!\\);\s*", string)]
-        data = {k: cls.unescape_value(str(v)) for k, v in pairs}
+        try:
+            data = {k: cls.unescape_value(str(v)) for k, v in pairs}
+        except ValueError as e:
+            logger.error(f"Error parsing comment: {string}, {e}")
+            data = {}
         return cls(**data)
 
     @classmethod
