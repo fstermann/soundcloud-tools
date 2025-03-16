@@ -261,6 +261,15 @@ class TrackHandler(BaseModel):
     @property
     def track_info(self):
         track = self.track
+        remix_data = {
+            "original_artist": self._get_tag_list_value(track, "TOPE"),
+            "remixer": self._get_tag_list_value(track, "TPE4"),
+            "mix_name": self._get_tag_value(track, "TIT3"),
+        }
+        if not any(any(item != "" for item in v) if isinstance(v, list) else v for v in remix_data.values()):
+            remix = None
+        else:
+            remix = Remix(**remix_data)
         return TrackInfo(
             title=self._get_tag_value(track, "TIT2"),
             artist=self._get_tag_list_value(track, "TPE1"),
@@ -268,11 +277,7 @@ class TrackHandler(BaseModel):
             year=convert_to_int(self._get_tag_value(track, "TDRC", default=0), default=0),
             release_date=self._get_tag_value(track, "TDRL"),
             artwork=self.get_single_cover(raise_error=False),
-            remix=Remix(
-                original_artist=self._get_tag_list_value(track, "TOPE"),
-                remixer=self._get_tag_list_value(track, "TPE4"),
-                mix_name=self._get_tag_value(track, "TIT3"),
-            ),
+            remix=remix,
             comment=Comment.from_str(self._get_tag_value(track, "COMM::XXX")),
         )
 

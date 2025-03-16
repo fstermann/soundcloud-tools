@@ -335,13 +335,15 @@ def render_track_info(track_info: TrackInfo, title_col, comment_col, artwork_col
 
     c1, c2 = st.columns((3, 2))
     with c1:
-        data = {
-            "artist": track_info.artist_str,
-            "original_artist": track_info.remix.original_artist_str,
-            "remixer": f"{track_info.remix.remixer_str} ({track_info.remix.mix_name})"
-            if (track_info.remix.remixer_str and track_info.remix.mix_name)
-            else None,
-        }
+        data = {"artist": track_info.artist_str, "original_artist": "-", "remixer": "-"}
+        if track_info.remix:
+            data = {
+                "artist": track_info.artist_str,
+                "original_artist": track_info.remix.original_artist_str,
+                "remixer": f"{track_info.remix.remixer_str} ({track_info.remix.mix_name})"
+                if (track_info.remix.remixer_str and track_info.remix.mix_name)
+                else None,
+            }
         render_as_table(data)
     with c2:
         render_as_table(track_info.model_dump(include={"genre", "release_date", "year"}))

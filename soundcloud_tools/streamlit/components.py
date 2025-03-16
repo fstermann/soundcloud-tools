@@ -226,13 +226,19 @@ def dates_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None):
 def remix_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Remix | None:
     c0, c1, c2, c3 = st.columns((1, 3, 3, 3))
     sst.setdefault("ti_is_remix", is_remix(track_info.title) if track_info else False)
-    if remix := c0.checkbox("__Remix__", key="ti_is_remix"):  # , label_visibility="collapsed"):
+    if remix := c0.checkbox("__RMX__", key="ti_is_remix"):
         sst.setdefault("ti_remixer", (track_info.remix and track_info.remix.remixer_str) or "")
         sst.setdefault("ti_original_artist", track_info.remix and track_info.remix.original_artist_str)
         sst.setdefault("ti_mix_name", track_info.remix and track_info.remix.mix_name)
 
+    remixer = c1.text_input("Remixer", key="ti_remixer", disabled=not remix)
+    original_artist = c2.text_input("Original Artist", key="ti_original_artist", disabled=not remix)
+    mix_name = c3.text_input("Mix Name", key="ti_mix_name", disabled=not remix)
+
+    c_copy, *cols = st.columns((1, 1.5, 1.5, 1.5, 1.5, 3))
     remix_ = sc_track_info and sc_track_info.remix
-    c0.button(
+
+    c_copy.button(
         ":material/cloud_download:",
         key="copy_remix_sc",
         on_click=lambda remixer, original_artist, mix_name: (
@@ -248,23 +254,47 @@ def remix_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Remi
         use_container_width=True,
         disabled=(not remix) or remix_ is None,
     )
-    with c1:
-        remixer = st.text_input("Remixer", key="ti_remixer", disabled=not remix)
+
+    # Remixer
+    with cols[0]:
         render_artist_options(
             sc_track_info.artist_options if sc_track_info else set(),
             key="ti_remixer",
             disabled=not remix,
         )
-    with c2:
-        original_artist = st.text_input("Original Artist", key="ti_original_artist", disabled=not remix)
+    cols[1].button(
+        ":material/arrow_upward:",
+        help="Titelize",
+        key="titelize_remixer",
+        on_click=apply_to_sst(titelize, "ti_remixer"),
+        use_container_width=True,
+        disabled=not remix,
+    )
+    # Original Artist
+    with cols[2]:
         render_artist_options(
             sc_track_info.artist_options if sc_track_info else set(),
             key="ti_original_artist",
             disabled=not remix,
         )
+    cols[3].button(
+        ":material/arrow_upward:",
+        help="Titelize",
+        key="titelize_original_artist",
+        on_click=apply_to_sst(titelize, "ti_original_artist"),
+        use_container_width=True,
+        disabled=not remix,
+    )
 
-    with c3:
-        mix_name = st.text_input("Mix Name", key="ti_mix_name", disabled=not remix)
+    # Mix Name
+    cols[4].button(
+        ":material/arrow_upward:",
+        help="Titelize",
+        key="titelize_mix_name",
+        on_click=apply_to_sst(titelize, "ti_mix_name"),
+        use_container_width=True,
+        disabled=not remix,
+    )
 
     if not remix:
         return None
