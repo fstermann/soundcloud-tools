@@ -24,6 +24,7 @@ from soundcloud_tools.streamlit.components import (
 from soundcloud_tools.streamlit.file_selection import file_selector
 from soundcloud_tools.streamlit.utils import apply_to_sst, render_embedded_track, reset_track_info_sst, table
 from soundcloud_tools.utils.string import (
+    changed_string,
     clean_artists,
     clean_title,
     remove_double_spaces,
@@ -70,7 +71,7 @@ def render_file(file: Path, root_folder: Path):
         sc_track_info=sc_track_info,
     )
     with c2.container(border=True):
-        col_title, col_comment, col_button = st.columns((5, 1, 1))
+        col_title, col_comment, col_button = st.columns((4.5, 1.5, 1))
         if col_button.button(
             ":material/save:",
             help=f"Save Metadata\n\n_Generated Filename:_ `{modified_info.filename}`",
@@ -321,7 +322,11 @@ def render_as_table(data: dict[str, Any]):
 def render_track_info(track_info: TrackInfo, title_col, comment_col, artwork_col):
     with title_col:
         render_as_table(track_info.model_dump(include={"title"}))
-    with comment_col.popover(":material/comment:", use_container_width=True):
+    old_comment = track_info.comment and track_info.comment.to_str()
+    new_comment = sst.ti_comment
+    with comment_col.popover(
+        f":material/comment: {changed_string(old_comment, new_comment)}", use_container_width=True
+    ):
         st.caption("Comment")
         if comment := (track_info.comment and track_info.comment.to_str().replace("\n", "  \n")):
             st.code(comment)
@@ -333,7 +338,9 @@ def render_track_info(track_info: TrackInfo, title_col, comment_col, artwork_col
         data = {
             "artist": track_info.artist_str,
             "original_artist": track_info.remix.original_artist_str,
-            "remixer": f"{track_info.remix.remixer_str} ({track_info.remix.mix_name})",
+            "remixer": f"{track_info.remix.remixer_str} ({track_info.remix.mix_name})"
+            if (track_info.remix.remixer_str and track_info.remix.mix_name)
+            else None,
         }
         render_as_table(data)
     with c2:
