@@ -41,7 +41,7 @@ def is_remix(title: str) -> bool:
 
 def get_mix_name(title: str) -> str | None:
     if match := re.search(r"\((.*)\)", title):
-        return match.group(1).strip()
+        return match.group(1).replace(get_mix_arist(title), "").strip()
     return None
 
 
@@ -52,9 +52,16 @@ def get_first_artist(title: str) -> str | None:
 
 
 def get_mix_arist(title: str) -> str | None:
-    if mix_name := get_mix_name(title):
+    if match := re.search(r"\((.*)\)", title):
+        mix_name = match.group(1)
         return re.sub(r"edit|remix|bootleg|rework|mix", "", mix_name, flags=re.IGNORECASE).strip()
     return None
+
+
+def get_raw_title(title: str) -> str:
+    if match := re.match(r"(.*?)\s*-\s*([^(]*)\s*\(?", title):
+        return match.group(2)
+    return title
 
 
 def clean_title(title: str):

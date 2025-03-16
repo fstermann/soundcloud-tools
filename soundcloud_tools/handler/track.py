@@ -1,18 +1,21 @@
+import re
 from datetime import date
 from pathlib import Path
-from typing import Self
+from typing import Any, ClassVar, Literal, Self
 
 import pydub
 import requests
 from mutagen.aiff import AIFF
 from mutagen.easyid3 import EasyID3
-from mutagen.id3 import APIC, ID3, TCON, TDRC, TDRL, TIT2, TPE1
+from mutagen.id3 import APIC, COMM, ID3, TCON, TDRC, TDRL, TIT2, TIT3, TOPE, TPE1, TPE4
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from soundcloud_tools.models import Track
+from soundcloud_tools.settings import get_settings
 from soundcloud_tools.utils import convert_to_int, load_tracks
+from soundcloud_tools.utils.string import get_first_artist, get_mix_arist, get_mix_name, is_remix
 
 FILETYPE_MAP = {
     ".mp3": MP3,
@@ -20,6 +23,69 @@ FILETYPE_MAP = {
     ".aiff": AIFF,
     ".wav": WAVE,
 }
+
+
+class Comment(BaseModel):
+    version: str | None = None
+    soundcloud_id: int | None = None
+    soundcloud_permalink: str | None = None
+
+    @staticmethod
+    def unescape_value(value: str):
+        return value.replace(r"\;", ";").replace(r"\=", "=").replace(r"\\", "\\")
+
+    @staticmethod
+    def escape_value(value: str):
+        return re.sub(r"([=;\\])", r"\\\1", value)
+
+    @classmethod
+    def from_str(cls, string: str) -> Self | None:
+        if not string:
+            return None
+        pairs = [pair.split("=", 1) for pair in re.split(r"(?<!\\);\s*", string)]
+        data = {k: cls.unescape_value(str(v)) for k, v in pairs}
+        return cls(**data)
+
+    @classmethod
+    def from_sc_track(cls, track: Track) -> Self:
+        return cls(
+            version=get_settings().version,
+            soundcloud_id=track.id,
+            soundcloud_permalink=track.permalink_url,
+        )
+
+    def to_str(self) -> str:
+        return "; \n".join(f"{k}={self.escape_value(str(v))}" for k, v in self.model_dump().items() if v is not None)
+
+
+class Remix(BaseModel):
+    original_artist: str | list[str]
+    remixer: str | list[str]
+    mix_name: str | None
+
+    @property
+    def original_artist_str(self) -> str:
+        return TrackInfo._join_artists(self.original_artist)
+
+    @property
+    def remixer_str(self) -> str:
+        return TrackInfo._join_artists(self.remixer)
+
+
+def unescape_list_value(value: str):
+    return value.replace(r"\,", ",").replace(r"\\", "\\")
+
+
+def escape_list_value(value: str):
+    return re.sub(r"([,\\])", r"\\\1", value)
+
+
+def serialize_list(values: list[str]) -> str:
+    return ", ".join(escape_list_value(artist) for artist in values)
+
+
+def deserialize_list(values: str) -> list[str]:
+    return [unescape_list_value(artist) for artist in values.split(", ")]
 
 
 class TrackInfo(BaseModel):
@@ -33,13 +99,22 @@ class TrackInfo(BaseModel):
     artwork: bytes | None = None
     artwork_url: str | None = None
 
+    remix: Remix | None = None
+    comment: Comment | None = None
+
     artist_options: set[str] = Field(default_factory=set)
+
+    _artist_sep: ClassVar[str] = ", "
 
     @model_validator(mode="after")
     def check_artwork_url(self):
         if self.artwork_url and not self.artwork:
             self.artwork = requests.get(self.artwork_url).content
         return self
+
+    @staticmethod
+    def _join_artists(artists: str | list[str]) -> str:
+        return serialize_list(artists) if isinstance(artists, list) else artists
 
     @property
     def filename(self) -> str:
@@ -51,34 +126,68 @@ class TrackInfo(BaseModel):
 
     @property
     def artist_str(self) -> str:
-        artists = [self.artist] if isinstance(self.artist, str) else self.artist
-        return ", ".join(artists)
+        return self._join_artists(self.artist)
 
     @staticmethod
-    def get_artist_sorter(title: str):
-        def sorter(artist: str | None):
-            if not artist:
-                return 0
-            return int(artist in title) + int(artist in title.split(" - ")[0])  # type: ignore[operator]
+    def _get_artist_sorter(title: str, type: Literal["artist", "original_artist", "remixer"]) -> int:
+        def is_in(artist: str, text: str | None):
+            return int(re.search(artist.strip(), text or "", flags=re.IGNORECASE) is not None)
 
-        return sorter
+        first_artist = get_first_artist(title)
+        mix_artist = get_mix_arist(title)
+
+        def by_first_sorter(artist: str):
+            return 0 if not artist else is_in(artist, title) + is_in(artist, first_artist)
+
+        def by_mix_sorter(artist: str):
+            return 0 if not artist else is_in(artist, title) + is_in(artist, mix_artist)
+
+        match type:
+            case "artist":
+                return by_mix_sorter if is_remix(title) else by_first_sorter
+            case "original_artist":
+                return by_first_sorter
+            case "remixer":
+                return by_mix_sorter
+            case _:
+                raise ValueError(f"Invalid type {type}")
+
+    @classmethod
+    def sort_artists(
+        cls, artists: set[str], title: str, type: Literal["artist", "original_artist", "remixer"]
+    ) -> list[str]:
+        return sorted(artists, key=cls._get_artist_sorter(title, type=type), reverse=True)
 
     @classmethod
     def from_sc_track(cls, track: Track) -> Self:
         artist_options = {
             track.publisher_metadata and track.publisher_metadata.artist,
             track.user.username,
-            track.title.split(" - ")[0],
+            get_first_artist(track.title),
+            get_mix_arist(track.title),
         }
-        most_likely_artist = sorted(artist_options, key=cls.get_artist_sorter(track.title), reverse=True)
+        artist_options = {a for a in artist_options if a}
+
+        most_likely_artists = cls.sort_artists(artist_options, track.title, "artist")
+        most_likely_original_artists = cls.sort_artists(artist_options, track.title, "original_artist")
+        most_likely_remixers = cls.sort_artists(artist_options, track.title, "remixer")
+
+        mix_name = get_mix_name(track.title)
+
         return cls(
             title=track.title,
-            artist=(most_likely_artist and most_likely_artist[0]) or "",
+            artist=next(iter(most_likely_artists), ""),
             genre=track.genre or "",
             year=track.display_date.year,
             release_date=track.display_date.strftime("%Y-%m-%d"),
             artwork_url=track.hq_artwork_url or track.user.hq_avatar_url,
-            artist_options={a for a in artist_options if a},
+            artist_options=artist_options,
+            remix=Remix(
+                original_artist=next(iter(most_likely_original_artists), ""),
+                remixer=next(iter(most_likely_remixers), ""),
+                mix_name=mix_name,
+            ),
+            comment=Comment.from_sc_track(track),
         )
 
     @property
@@ -134,16 +243,31 @@ class TrackHandler(BaseModel):
             obj.add_tags()
         return obj
 
+    @staticmethod
+    def _get_tag_value(track: Track, tag: str, default: Any = "") -> str:
+        return str(track.tags.get(tag, default))
+
+    @staticmethod
+    def _get_tag_list_value(track: Track, tag: str, default: Any = "") -> list[str]:
+        value = TrackHandler._get_tag_value(track, tag, default=default)
+        return value.split("\u0000") if "\u0000" in value else deserialize_list(value)
+
     @property
     def track_info(self):
         track = self.track
         return TrackInfo(
-            title=str(track.tags.get("TIT2", "")),
-            artist=str(track.tags.get("TPE1", "")).split("\u0000"),
-            genre=str(track.tags.get("TCON", "")),
-            year=convert_to_int(str(track.tags.get("TDRC", 0)), default=0),
-            release_date=str(track.tags.get("TDRL", "")),
+            title=self._get_tag_value(track, "TIT2"),
+            artist=self._get_tag_list_value(track, "TPE1"),
+            genre=self._get_tag_value(track, "TCON"),
+            year=convert_to_int(self._get_tag_value(track, "TDRC", default=0), default=0),
+            release_date=self._get_tag_value(track, "TDRL"),
             artwork=self.get_single_cover(raise_error=False),
+            remix=Remix(
+                original_artist=self._get_tag_list_value(track, "TOPE"),
+                remixer=self._get_tag_list_value(track, "TPE4"),
+                mix_name=self._get_tag_value(track, "TIT3"),
+            ),
+            comment=Comment.from_str(self._get_tag_value(track, "COMM::XXX")),
         )
 
     @property
@@ -184,7 +308,7 @@ class TrackHandler(BaseModel):
 
     def _add_info(self, track, info: TrackInfo, artwork: bytes | None = None):
         track.add(TIT2(encoding=3, text=info.title))
-        track.add(TPE1(encoding=3, text=info.artist))
+        track.add(TPE1(encoding=3, text=info.artist_str))
         track.add(TCON(encoding=3, text=info.genre))
         track.add(TDRC(encoding=3, text=str(info.year)))
         track.add(TDRL(encoding=3, text=info.release_date))
@@ -199,6 +323,12 @@ class TrackHandler(BaseModel):
                     data=artwork,
                 )
             )
+        if info.remix:
+            track.add(TOPE(encoding=3, text=info.remix.original_artist_str))
+            track.add(TPE4(encoding=3, text=info.remix.remixer_str))
+            track.add(TIT3(encoding=3, text=info.remix.mix_name))
+        if info.comment:
+            track.add(COMM(encoding=3, text=info.comment.to_str()))
 
     def add_info(self, info: TrackInfo, artwork: bytes | None = None):
         track = self.track

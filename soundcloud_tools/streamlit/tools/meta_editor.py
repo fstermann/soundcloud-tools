@@ -10,37 +10,29 @@ from streamlit import session_state as sst
 
 from soundcloud_tools.handler.track import TrackHandler, TrackInfo
 from soundcloud_tools.models import Track
-from soundcloud_tools.predict.base import Predictor
-from soundcloud_tools.predict.bpm import BPMPredictor
-from soundcloud_tools.predict.style import StylePredictor
 from soundcloud_tools.streamlit.client import get_client
+from soundcloud_tools.streamlit.components import (
+    ARTWORK_WIDTH,
+    artist_editor,
+    artwork_editor,
+    comment_editor,
+    dates_editor,
+    genre_editor,
+    remix_editor,
+    title_editor,
+)
 from soundcloud_tools.streamlit.file_selection import file_selector
 from soundcloud_tools.streamlit.utils import apply_to_sst, render_embedded_track, reset_track_info_sst, table
 from soundcloud_tools.utils.string import (
-    bold,
-    changed_string,
     clean_artists,
     clean_title,
+    remove_double_spaces,
     remove_free_dl,
-    remove_parenthesis,
+    replace_underscores,
     titelize,
 )
 
-ARTWORK_WIDTH = 100
-
 logger = logging.getLogger(__name__)
-
-
-def render_predictor(predictor: Predictor, filename: str, autopredict: bool = False):
-    key = predictor.__class__.__name__
-    if autopredict:
-        if (pred := sst.get((filename, key))) is not None:
-            return pred
-        sst[(filename, key)] = predictor.predict(filename)
-        return sst[(filename, key)]
-    if st.button(f"Predict {predictor.title}", key=f"predict-{key}", help=predictor.help):
-        sst[(filename, key)] = predictor.predict(filename)
-    return sst.get((filename, key))
 
 
 @st.dialog("Delete")
@@ -64,10 +56,11 @@ def render_file(file: Path, root_folder: Path):
 
     # Metadata
     with st.sidebar.container(border=True):
-        sc_track_info = render_soundcloud_search(remove_free_dl(handler.file.stem))
+        clean_title = remove_double_spaces(replace_underscores(remove_free_dl(handler.file.stem)))
+        sc_track_info = render_soundcloud_search(clean_title)
 
     st.subheader(":material/description: Edit Track Metadata")
-    c1, c2, c3 = st.columns((2.5, 5, 2))
+    c1, c2, c3 = st.columns((3, 5, 1.5))
     with c1.container(border=True):
         render_auto_checkboxes(handler, sc_track_info)
     modified_info = modify_track_info(
@@ -77,7 +70,8 @@ def render_file(file: Path, root_folder: Path):
         sc_track_info=sc_track_info,
     )
     with c2.container(border=True):
-        if st.button(
+        col_title, col_comment, col_button = st.columns((5, 1, 1))
+        if col_button.button(
             ":material/save:",
             help=f"Save Metadata\n\n_Generated Filename:_ `{modified_info.filename}`",
             use_container_width=True,
@@ -86,7 +80,10 @@ def render_file(file: Path, root_folder: Path):
             handler.add_info(modified_info, artwork=modified_info.artwork)
             sst.new_track_name = handler.rename(modified_info.filename)
             st.rerun()
-        render_track_info(handler.track_info, context=(st, c3.container(border=True)))
+
+        render_track_info(
+            handler.track_info, title_col=col_title, comment_col=col_comment, artwork_col=c3.container(border=True)
+        )
 
     with st.expander("Cover Handler"):
         cover_handler(handler.track, artwork=modified_info.artwork)
@@ -103,6 +100,10 @@ def copy_track_info(track_info: TrackInfo, only_missing: bool = False):
         "ti_genre": track_info.genre,
         "ti_year": track_info.year,
         "ti_release_date": track_info.release_date,
+        "ti_remixer": track_info.remix and track_info.remix.remixer_str,
+        "ti_original_artist": track_info.remix and track_info.remix.original_artist_str,
+        "ti_mix_name": track_info.remix and track_info.remix.mix_name,
+        "ti_comment": track_info.comment and track_info.comment.to_str(),
     }
     for key, value in state_info_map.items():
         if only_missing and sst.get(key):
@@ -181,7 +182,7 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
         use_container_width=True,
     )
 
-    cols[1].button(":material/refresh:")
+    cols[1].button(":material/refresh:", use_container_width=True)
 
     if cols[2].button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
         delete_file(handler)
@@ -209,11 +210,11 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
         on_click=finalize,
         args=(handler,),
     )
-
+    st.caption("Auto-Actions")
     cols = st.columns(2)
     if cols[0].checkbox(
-        ":material/cleaning_services: Auto-Clean",
-        value=False,
+        ":material/cleaning_services: Clean",
+        value=True,
         key="auto_clean",
         help=(
             "Automatically cleanup Title and Artists "
@@ -223,7 +224,7 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
         apply_to_sst(clean_title, "ti_title")()
         apply_to_sst(clean_artists, "ti_artist")()
     if cols[0].checkbox(
-        ":material/arrow_upward: Auto-Titelize",
+        ":material/arrow_upward: Titelize",
         value=False,
         key="auto_titelize",
         help="Automatically titelizes Artists and Title",
@@ -231,16 +232,16 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
         apply_to_sst(titelize, "ti_title")()
         apply_to_sst(titelize, "ti_artist")()
     if cols[1].checkbox(
-        ":material/add_photo_alternate: Auto-Copy Artwork",
-        value=False,
+        ":material/add_photo_alternate: Artwork",
+        value=True,
         key="auto_copy_artwork",
         help="Automatically copy artwork if not present",
     ):
         if not handler.track_info.artwork and sc_track_info:
             copy_artwork(sc_track_info.artwork_url)
     if cols[1].checkbox(
-        ":material/cloud_download: Auto-Copy Metadata",
-        value=False,
+        ":material/cloud_download: Metadata",
+        value=True,
         key="auto_copy_metadata",
         help="Automatically copy metadata if not present",
     ):
@@ -266,165 +267,31 @@ def modify_track_info(
     has_artwork: bool = False,
 ) -> TrackInfo:
     title_col, artist_col, dates_col = st.columns((4, 4, 2))
-    # Title
+
     with title_col.container(border=True):
-        c1, c2 = st.columns((1, 9))
-        c2.write(f"__Title__{changed_string(track_info.title, sst.ti_title)}")
-        c2.caption(f"Old {bold(track_info.title) or '`None`'}")
-        c1.button(
-            ":material/cloud_download:",
-            help="Copy Metadata from Soundcloud",
-            on_click=sst.__setitem__,
-            args=("ti_title", sc_track_info and sc_track_info.title),
-            use_container_width=True,
-            key="copy_title",
-            disabled=sc_track_info is None,
-        )
-        sst.setdefault("ti_title", track_info.title)
-        title = c2.text_input(
-            "Title",
-            key="ti_title",
-            label_visibility="collapsed",
-        )
-        c1.button(
-            ":material/cleaning_services:",
-            help="Clean",
-            key="clean_title",
-            on_click=apply_to_sst(clean_title, "ti_title"),
-            use_container_width=True,
-        )
-        c1.button(
-            ":material/arrow_upward:",
-            help="Titelize",
-            key="titelize_title",
-            on_click=apply_to_sst(titelize, "ti_title"),
-            use_container_width=True,
-        )
-        c1.button(
-            ":material/data_array:",
-            help="Remove `[]` parenthesis",
-            key="remove_parenthesis_title",
-            on_click=apply_to_sst(remove_parenthesis, "ti_title"),
-            use_container_width=True,
-        )
+        title = title_editor(track_info, sc_track_info)
 
-    # Artists
     with artist_col.container(border=True):
-        c1, c2 = st.columns((1, 9))
-        c2.write(f"__Artists__{changed_string(track_info.artist_str, sst.ti_artist)}")
-        c2.caption(f"Old {bold(track_info.artist_str) or '`None`'}")
-        c1.button(
-            ":material/cloud_download:",
-            help="Copy Metadata from Soundcloud",
-            on_click=sst.__setitem__,
-            args=("ti_artist", sc_track_info and sc_track_info.artist_str),
-            use_container_width=True,
-            key="copy_artists",
-            disabled=sc_track_info is None,
-        )
-        c1.button(
-            ":material/cleaning_services:",
-            help="Clean",
-            key="clean_artist",
-            on_click=apply_to_sst(clean_artists, "ti_artist"),
-            use_container_width=True,
-        )
-        c1.button(
-            ":material/arrow_upward:",
-            help="Titelize",
-            key="titelize_artist",
-            on_click=apply_to_sst(titelize, "ti_artist"),
-            use_container_width=True,
-        )
-        with c1.popover(":material/groups:", use_container_width=True):
-            artist_options = sc_track_info.artist_options if sc_track_info else set()
-            if artist := sst.get("ti_artist"):
-                artist_options |= {artist}
-            for artist in artist_options:
-                st.button(artist, key=f"artist_option_{artist}", on_click=sst.__setitem__, args=("ti_artist", artist))
+        artists = artist_editor(track_info, sc_track_info)
 
-        sst.setdefault("ti_artist", track_info.artist_str)
-        artist = c2.text_input(
-            "Artist",
-            key="ti_artist",
-            label_visibility="collapsed",
-        )
-        artists = [a.strip() for a in artist.split(",")]
-        if len(artists) == 1:
-            artists = artists[0]
-        c2.caption(f"Parsed: __{artists}__" if artists else "No Artists")
+    with dates_col.container(border=True):
+        year, release_date = dates_editor(track_info, sc_track_info)
 
     artwork_col, genre_col = st.columns(2)
 
-    # Artwork
     with artwork_col.container(border=True):
-        c1, c2 = st.columns((1, 9))
-        c2.write("__Artwork__")
-        c1.button(
-            ":material/cloud_download:",
-            key="copy_artwork_sc",
-            on_click=copy_artwork,
-            args=(sc_track_info and sc_track_info.artwork_url,),
-            use_container_width=True,
-            disabled=sc_track_info is None,
-        )
-        c1.button(
-            ":material/delete:",
-            key="delete_artwork",
-            on_click=sst.__setitem__,
-            args=("ti_artwork_url", ""),
-            use_container_width=True,
-        )
-        sst.setdefault("ti_artwork_url", track_info.artwork_url)
-        artwork_url = c2.text_input("URL", key="ti_artwork_url")
-        if has_artwork:
-            c2.warning("Track already has artwork, no need to copy.")
-        if not has_artwork and not artwork_url:
-            c2.error("Current track has no artwork, you should copy it.")
-        if artwork_url:
-            c1.image(artwork_url, width=ARTWORK_WIDTH)
+        artwork_url = artwork_editor(track_info, sc_track_info, has_artwork=has_artwork)
 
-    # Genre
     with genre_col.container(border=True):
-        st.write(f"__Genre__{changed_string(track_info.genre, sst.get("ti_genre"))}")
-        c1, c2 = st.columns(2)
-        if c1.toggle("Predict"):
-            genres = render_predictor(StylePredictor(), filename, autopredict=True)
-            bpm = render_predictor(BPMPredictor(), filename, autopredict=True)
-            c2.write(f"BPM __{bpm}__")
-        else:
-            genres = [("Trance", ""), ("Hardtrance", ""), ("House", "")]
+        genre = genre_editor(track_info, sc_track_info, filename=filename)
 
-        gcols = st.columns(len(genres))
-        for i, (genre, prob) in enumerate(genres):
-            prob_str = prob and f" ({prob:.2f})"
-            if gcols[i].button(f"{genre}{prob_str}", use_container_width=True):
-                sst.ti_genre = genre
+    remix_col, comment_col = st.columns((6, 3))
 
-        sst.setdefault("ti_genre", track_info.genre)
-        genre = st.text_input("Genre", key="ti_genre", label_visibility="collapsed")
+    with remix_col.container(border=True):
+        remix = remix_editor(track_info, sc_track_info)
 
-    # Dates
-    with dates_col.container(border=True):
-        c1, c2 = st.columns((1, 9))
-        c2.write("__Dates__")
-        c1.button(
-            ":material/cloud_download:",
-            key="copy_dates_sc",
-            on_click=lambda date, year: (
-                sst.__setitem__("ti_release_date", date),
-                sst.__setitem__("ti_year", year),
-            ),
-            args=(sc_track_info and sc_track_info.release_date, sc_track_info and sc_track_info.year),
-            use_container_width=True,
-            disabled=sc_track_info is None,
-        )
-        sst.setdefault("ti_year", track_info.year)
-        year = st.number_input(f"Year{changed_string(track_info.year, sst.get("ti_year"))}", key="ti_year", step=1)
-        sst.setdefault("ti_release_date", track_info.release_date)
-        release_date = st.text_input(
-            f"Release Date{changed_string(track_info.release_date, sst.get("ti_release_date"))}", key="ti_release_date"
-        )
+    with comment_col.container(border=True):
+        comment = comment_editor(track_info, sc_track_info)
 
     return TrackInfo(
         title=title,
@@ -433,30 +300,46 @@ def modify_track_info(
         year=year,
         release_date=release_date,
         artwork_url=artwork_url,
+        remix=remix,
+        comment=comment,
     )
 
 
 def render_as_table(data: dict[str, Any]):
-    prepared_data = [("<b>" + k.replace("_", " ").title() + "</b>", v or "⚠️") for k, v in data.items()]
+    def prepare_key(k):
+        return "<b>" + k.replace("_", " ").title() + "</b>"
+
+    def prepare_value(v):
+        if isinstance(v, list):
+            v = ", ".join(v)
+        return v or "⚠️"
+
+    prepared_data = [(prepare_key(k), prepare_value(v)) for k, v in data.items()]
     table(prepared_data)
 
 
-def render_track_info(track_info: TrackInfo, context: tuple = (None, None)):
-    if context:
-        left, right = context
-        left_c = left.container()
-        c1, c2, c3 = (*left.columns(2), right)  # type: ignore
-    else:
-        left_c = st.container()
-        c1, c2, c3 = st.columns(3)
-
-    with left_c:
+def render_track_info(track_info: TrackInfo, title_col, comment_col, artwork_col):
+    with title_col:
         render_as_table(track_info.model_dump(include={"title"}))
+    with comment_col.popover(":material/comment:", use_container_width=True):
+        st.caption("Comment")
+        if comment := (track_info.comment and track_info.comment.to_str().replace("\n", "  \n")):
+            st.code(comment)
+        else:
+            st.warning("No Comment")
+
+    c1, c2 = st.columns((3, 2))
     with c1:
-        render_as_table(track_info.model_dump(include={"artist", "genre"}))
+        data = {
+            "artist": track_info.artist_str,
+            "original_artist": track_info.remix.original_artist_str,
+            "remixer": f"{track_info.remix.remixer_str} ({track_info.remix.mix_name})",
+        }
+        render_as_table(data)
     with c2:
-        render_as_table(track_info.model_dump(include={"release_date", "year"}))
-    with c3:
+        render_as_table(track_info.model_dump(include={"genre", "release_date", "year"}))
+
+    with artwork_col:
         if track_info.artwork:
             st.image(track_info.artwork, width=ARTWORK_WIDTH)
             st.caption(track_info.artwork_url)
