@@ -137,7 +137,7 @@ class TrackInfo(BaseModel):
     @staticmethod
     def _get_artist_sorter(title: str, type: Literal["artist", "original_artist", "remixer"]) -> int:
         def is_in(artist: str, text: str | None):
-            return int(re.search(artist.strip(), text or "", flags=re.IGNORECASE) is not None)
+            return int(re.search(re.escape(artist.strip()), text or "", flags=re.IGNORECASE) is not None)
 
         first_artist = get_first_artist(title)
         mix_artist = get_mix_arist(title)
