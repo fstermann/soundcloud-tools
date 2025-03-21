@@ -225,7 +225,7 @@ def dates_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None):
 
 def remix_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Remix | None:
     c0, c1, c2, c3 = st.columns((1, 3, 3, 3))
-    sst.setdefault("ti_is_remix", is_remix(track_info.title) if track_info else False)
+    sst.setdefault("ti_is_remix", track_info.remix or is_remix(track_info.title) if track_info else False)
     if remix := c0.checkbox("__RMX__", key="ti_is_remix"):
         sst.setdefault("ti_remixer", (track_info.remix and track_info.remix.remixer_str) or "")
         sst.setdefault("ti_original_artist", track_info.remix and track_info.remix.original_artist_str)
@@ -315,5 +315,7 @@ def comment_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Co
         use_container_width=True,
         disabled=sc_track_info is None,
     )
+    if not comment:
+        return None
     st.code(comment.replace("\n", "  \n"))
     return Comment.from_str(comment)
