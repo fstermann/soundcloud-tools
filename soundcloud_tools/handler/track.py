@@ -335,9 +335,12 @@ class TrackHandler(BaseModel):
                 )
             )
         if info.remix:
-            track.add(TOPE(encoding=3, text=info.remix.original_artist_str))
-            track.add(TPE4(encoding=3, text=info.remix.remixer_str))
-            track.add(TIT3(encoding=3, text=info.remix.mix_name))
+            if info.remix.original_artist_str:
+                track.add(TOPE(encoding=3, text=info.remix.original_artist_str))
+            if info.remix.remixer_str:
+                track.add(TPE4(encoding=3, text=info.remix.remixer_str))
+            if info.remix.mix_name:
+                track.add(TIT3(encoding=3, text=info.remix.mix_name))
         if info.comment:
             track.delall("COMM")
             track.add(COMM(encoding=3, text=info.comment.to_str()))
