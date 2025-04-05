@@ -14,7 +14,7 @@ from soundcloud_tools import models as scm
 from soundcloud_tools.models.playlist import PlaylistUpdateImageRequest, PlaylistUpdateImageResponse, UserPlaylists
 from soundcloud_tools.models.request import PlaylistCreateRequest
 from soundcloud_tools.settings import get_settings
-from soundcloud_tools.utils import generate_random_user_agent, get_default_kwargs
+from soundcloud_tools.utils import chunk_list, generate_random_user_agent, get_default_kwargs
 
 logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore", message="Unverified HTTPS request is being made")
@@ -133,7 +133,7 @@ class Client:
     @route("POST", "playlists", response_model=scm.Playlist)
     async def post_playlist(self, data: PlaylistCreateRequest) -> scm.Playlist: ...
 
-    @route("GET", "playlists/{playlist_id}")
+    @route("GET", "playlists/{playlist_id}", response_model=scm.Playlist)
     async def get_playlist(self, playlist_id: int, show_tracks: bool = True): ...
 
     @route("GET", "users/{user_id}/likes", response_model=scm.Likes)
@@ -205,3 +205,17 @@ class Client:
         limit: int = 12,
         linked_partitioning: bool = True,
     ) -> UserPlaylists: ...
+
+    @route("GET", "tracks", response_model=list[scm.Track])
+    async def get_tracks(self, ids: str) -> list[scm.Track]: ...
+
+    @staticmethod
+    def prepare_track_ids(ids: list[int]) -> str:
+        return ",".join(map(str, ids))
+
+    async def get_all_tracks(self, track_ids: list[int], chunk_size: int = 30) -> list[scm.Track]:
+        return [
+            track
+            for track_ids_chunk in chunk_list(track_ids, n=chunk_size)
+            for track in await self.get_tracks(ids=self.prepare_track_ids(track_ids_chunk))
+        ]

@@ -70,6 +70,10 @@ class Playlist(BaseModel):
     tracks: list[Track | TrackSlim] = []
     track_count: int
 
+    @property
+    def hq_artwork_url(self) -> str | None:
+        return self.artwork_url and self.artwork_url.replace("-large.", "-t500x500.")
+
 
 class Seed(BaseModel):
     urn: str

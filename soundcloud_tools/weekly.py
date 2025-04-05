@@ -12,7 +12,13 @@ from soundcloud_tools.models.playlist import PlaylistCreate
 from soundcloud_tools.models.request import PlaylistCreateRequest
 from soundcloud_tools.models.stream import Stream, StreamItem, StreamItemType
 from soundcloud_tools.models.track import Track
-from soundcloud_tools.utils import Weekday, get_scheduled_time, get_week_of_month
+from soundcloud_tools.utils import (
+    Weekday,
+    get_scheduled_time,
+    get_unique_track_ids,
+    get_week_of_month,
+    sort_tracks_by_playcount,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +216,8 @@ async def create_weekly_favorite_playlist(
     tracks = await filter_tracks_for_seen(client=client, tracks=tracks, user_id=user_id)
     if exclude_liked:
         tracks = await filter_tracks_for_liked(client=client, tracks=tracks, user_id=user_id)
-    track_ids = get_ordered_track_ids(tracks)
+    full_tracks = await client.get_all_tracks(track_ids=get_unique_track_ids(tracks))
+    track_ids = sort_tracks_by_playcount(full_tracks)
 
     # Create playlist from track_ids
     week_prefix = f"{half.title()} half of " if half else " "

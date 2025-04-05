@@ -7,6 +7,8 @@ from typing import Any
 
 from fake_useragent import UserAgent
 
+from soundcloud_tools.models import Track
+
 
 class Weekday(IntEnum):
     MONDAY = 0
@@ -59,3 +61,23 @@ def load_tracks(folder: Path, file_types: list[str] | None = None):
     ]
     files.sort(key=lambda f: f.name)
     return files
+
+
+def chunk_list(list_: list, n: int):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(list_), n):
+        yield list_[i : i + n]
+
+
+def sort_tracks_by_playcount(tracks: list[Track]) -> list[Track]:
+    """Sorts tracks by playcount in descending order."""
+    return sorted(set(tracks), key=lambda x: (x.playback_count or 0), reverse=True)
+
+
+def get_unique_track_ids(tracks: list[Track]) -> list[int]:
+    """Returns a list of unique track IDs from the provided tracks."""
+    track_ids = []
+    for track in tracks:
+        if track.id not in track_ids:
+            track_ids.append(track.id)
+    return track_ids
