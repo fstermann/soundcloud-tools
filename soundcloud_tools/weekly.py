@@ -217,7 +217,9 @@ async def create_weekly_favorite_playlist(
     if exclude_liked:
         tracks = await filter_tracks_for_liked(client=client, tracks=tracks, user_id=user_id)
     full_tracks = await client.get_all_tracks(track_ids=get_unique_track_ids(tracks))
-    track_ids = sort_tracks_by_playcount(full_tracks)
+    full_tracks = sort_tracks_by_playcount(full_tracks)
+    track_ids = get_ordered_track_ids(full_tracks)
+    logger.info(f"Found {len(track_ids)} new unique tracks")
 
     # Create playlist from track_ids
     week_prefix = f"{half.title()} half of " if half else " "
