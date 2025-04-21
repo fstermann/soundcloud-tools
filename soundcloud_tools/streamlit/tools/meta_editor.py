@@ -185,19 +185,23 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
 
     cols[1].button(":material/refresh:", use_container_width=True)
 
-    if cols[2].button(":material/delete:", key="del_outer", help="Delete file", use_container_width=True):
-        delete_file(handler)
+    cols[2].button(
+        ":material/delete:",
+        key="del_outer",
+        help="Delete file",
+        use_container_width=True,
+        on_click=delete_file,
+        args=(handler,),
+    )
 
-    if cols[3].button(
+    cols[3].button(
         ":material/signature:",
         key="rename",
         use_container_width=True,
         disabled=handler.track_info.filename == handler.file.stem,
         help=f"Filename does not match track info, rename to '{handler.track_info.filename}'",
-    ):
-        cols[3].success("Renamed Successfully")
-        sst.new_track_name = handler.rename(handler.track_info.filename)
-        st.rerun()
+        on_click=lambda: setattr(sst, "new_track_name", handler.rename(handler.track_info.filename)),
+    )
 
     cols[4].button(
         ":material/done_all:",
@@ -213,6 +217,22 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
     )
     st.caption("Auto-Actions")
     cols = st.columns(2)
+    if cols[1].checkbox(
+        ":material/add_photo_alternate: Artwork",
+        value=True,
+        key="auto_copy_artwork",
+        help="Automatically copy artwork if not present",
+    ):
+        if not handler.track_info.artwork and sc_track_info:
+            copy_artwork(sc_track_info.artwork_url)
+    if cols[1].checkbox(
+        ":material/cloud_download: Metadata",
+        value=True,
+        key="auto_copy_metadata",
+        help="Automatically copy metadata if not present",
+    ):
+        if sc_track_info:
+            copy_track_info(sc_track_info, only_missing=True)
     if cols[0].checkbox(
         ":material/cleaning_services: Clean",
         value=True,
@@ -232,22 +252,6 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
     ):
         apply_to_sst(titelize, "ti_title")()
         apply_to_sst(titelize, "ti_artist")()
-    if cols[1].checkbox(
-        ":material/add_photo_alternate: Artwork",
-        value=True,
-        key="auto_copy_artwork",
-        help="Automatically copy artwork if not present",
-    ):
-        if not handler.track_info.artwork and sc_track_info:
-            copy_artwork(sc_track_info.artwork_url)
-    if cols[1].checkbox(
-        ":material/cloud_download: Metadata",
-        value=True,
-        key="auto_copy_metadata",
-        help="Automatically copy metadata if not present",
-    ):
-        if sc_track_info:
-            copy_track_info(sc_track_info, only_missing=True)
 
 
 def finalize(handler: TrackHandler):
