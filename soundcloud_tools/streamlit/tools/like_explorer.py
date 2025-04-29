@@ -6,7 +6,6 @@ from datetime import date
 from typing import Callable
 
 import devtools
-import pandas as pd
 import requests
 import streamlit as st
 from streamlit import session_state as sst
@@ -18,7 +17,7 @@ from soundcloud_tools.models.request import PlaylistCreateRequest
 from soundcloud_tools.models.track import Track
 from soundcloud_tools.settings import get_settings
 from soundcloud_tools.streamlit.client import Client, get_client
-from soundcloud_tools.streamlit.utils import render_embedded_track
+from soundcloud_tools.streamlit.utils import display_collection_tracks
 
 logger = logging.getLogger(__name__)
 
@@ -81,31 +80,6 @@ def display_user(user: User):
             f"Country: {user.city}, {user.country_code}  \n"
             f"Followers: {user.followers_count}"
         )
-
-
-def display_collection_tracks(collection: list[Track] | list[Repost], caption: str):
-    data = pd.DataFrame(
-        [item.track.model_dump() | {"liked_at": item.created_at} for item in collection if hasattr(item, "track")]
-    )
-    if data.empty:
-        st.warning(f"No {caption} found.")
-        return
-    cols = data.columns.to_list()
-    cols.remove("title")
-    cols.remove("liked_at")
-    data = data[["title", "liked_at", *cols]]
-
-    c1, c2 = st.columns([1, 1])
-    selection = c1.dataframe(
-        data, use_container_width=True, on_select="rerun", selection_mode="single-row", key=f"df_{caption}"
-    )
-    st.caption(f"Total {caption}: {len(collection)}")
-    index = selection["selection"]["rows"]
-    if index:
-        selected = data.iloc[index[0]]
-        track = Track(**selected.to_dict())
-        with c2:
-            render_embedded_track(track)
 
 
 def create_playlist(likes: list[Track], reposts: list[Repost], artist: str, filters: dict) -> Playlist:
