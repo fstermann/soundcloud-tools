@@ -8,8 +8,8 @@ from pydantic import ValidationError
 from streamlit import session_state as sst
 
 from soundcloud_tools.handler.folder import FolderHandler
-from soundcloud_tools.handler.track import TrackHandler
 from soundcloud_tools.settings import get_settings
+from soundcloud_tools.streamlit.collection import load_track_infos
 from soundcloud_tools.streamlit.utils import reset_track_info_sst, table
 from soundcloud_tools.utils import load_tracks
 
@@ -85,11 +85,12 @@ def render_file_moving(handler: FolderHandler, target: Path, filters: list[Calla
 
 
 def render_filters(path) -> list[int] | None:
-    track_infos = TrackHandler.load_track_infos(path)
+    track_infos = load_track_infos(path)
 
     # Filter options
     genres = Counter([t.genre for t in track_infos])
     artists = Counter([a for t in track_infos for a in t.artist])
+    versions = sorted({t.comment.version for t in track_infos if t.comment and t.comment.version is not None})
 
     # Filter components
     search = st.text_input("Search")
@@ -103,6 +104,7 @@ def render_filters(path) -> list[int] | None:
         sorted(artists, key=artists.get, reverse=True),  # type: ignore[arg-type]
         format_func=lambda x: f"{x} ({artists[x]})",
     )
+    filtered_versions = st.multiselect("Versions", [*versions, None])
     start_date = st.date_input("Start Date", value=None) or date.min
     end_date = st.date_input("End Date", value=None) or date.today()
 
@@ -110,10 +112,17 @@ def render_filters(path) -> list[int] | None:
     selected_indices = [
         i
         for i, t in enumerate(track_infos)
-        if t.genre in filtered_genres
-        or any(a in t.artist_str for a in filtered_artists)
-        or (search and any(search in attr for attr in (t.genre.lower(), t.artist_str.lower(), t.title.lower())))
-        or (start_date <= t.release_date_obj <= end_date)
+        if (
+            (t.genre in filtered_genres if filtered_genres else True)
+            and (any(a in t.artist_str for a in filtered_artists) if filtered_artists else True)
+            and (
+                any(search in attr for attr in (t.genre.lower(), t.artist_str.lower(), t.title.lower()))
+                if search
+                else True
+            )
+            and ((t.comment and t.comment.version) in filtered_versions if filtered_versions else True)
+            and (start_date <= t.release_date_obj <= end_date)
+        )
     ]
     if search and not selected_indices:
         # No results found for search

@@ -298,7 +298,7 @@ def remix_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Remi
 
     if not remix:
         return None
-    return Remix(remixer=remixer, original_artist=original_artist, mix_name=mix_name)
+    return Remix(remixer=remixer or "", original_artist=original_artist or "", mix_name=mix_name or "")
 
 
 def comment_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Comment | None:
