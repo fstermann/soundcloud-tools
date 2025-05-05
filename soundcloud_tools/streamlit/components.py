@@ -29,7 +29,7 @@ def build_title_from_remix(title: str):
 
 
 def title_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> str:
-    cols = iter(build_button_columns(5))
+    cols = iter(build_button_columns(6))
     sst.setdefault("ti_title", track_info.title)
     next(cols).write(f"__Title__{changed_string(track_info.title, sst.ti_title)}")
     next(cols).button(
@@ -67,6 +67,13 @@ def title_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> str:
         help="Remove `[]` parenthesis",
         key="remove_parenthesis_title",
         on_click=apply_to_sst(remove_parenthesis, "ti_title"),
+        use_container_width=True,
+    )
+    next(cols).button(
+        ":material/content_cut:",
+        help="Isolate Title",
+        key="isolate_title",
+        on_click=apply_to_sst(get_raw_title, "ti_title"),
         use_container_width=True,
     )
     title = st.text_input("Title", key="ti_title", label_visibility="collapsed")
