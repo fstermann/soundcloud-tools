@@ -1,3 +1,4 @@
+import re
 from collections import Counter
 from datetime import date
 from pathlib import Path
@@ -84,13 +85,22 @@ def render_file_moving(handler: FolderHandler, target: Path, filters: list[Calla
         st.rerun()
 
 
+def split_key(key: str) -> tuple[int, str]:
+    if not (match_ := re.match(r"(\d{1,2})(A|B)", key)):
+        return 0, ""
+    num, ab = match_.groups()
+    num = int(num)
+    return num, ab
+
+
 def render_filters(path) -> list[int] | None:
     track_infos = load_track_infos(path)
 
     # Filter options
     genres = Counter([t.genre for t in track_infos])
     artists = Counter([a for t in track_infos for a in t.artist])
-    versions = sorted({t.comment.version for t in track_infos if t.comment and t.comment.version is not None})
+    versions = Counter([t.comment and t.comment.version for t in track_infos])
+    keys = Counter([t.key for t in track_infos])
 
     # Filter components
     search = st.text_input("Search")
@@ -106,7 +116,19 @@ def render_filters(path) -> list[int] | None:
         format_func=lambda x: f"{x} ({artists[x]})",
         on_change=reset_track_info_sst,
     )
-    filtered_versions = st.multiselect("Versions", [*versions, None], on_change=reset_track_info_sst)
+    filtered_versions = st.multiselect(
+        "Versions",
+        sorted(versions, key=versions.get, reverse=True),  # type: ignore[arg-type]
+        format_func=lambda x: f"{x} ({versions[x]})",
+        on_change=reset_track_info_sst,
+    )
+
+    filtered_keys = st.multiselect(
+        "Keys",
+        sorted(keys, key=split_key),  # type: ignore[arg-type]
+        format_func=lambda x: f"{x} ({keys[x]})",
+        on_change=reset_track_info_sst,
+    )
     start_date = st.date_input("Start Date", value=None, on_change=reset_track_info_sst) or date.min
     end_date = st.date_input("End Date", value=None, on_change=reset_track_info_sst) or date.today()
 
@@ -123,6 +145,7 @@ def render_filters(path) -> list[int] | None:
                 else True
             )
             and ((t.comment and t.comment.version) in filtered_versions if filtered_versions else True)
+            and (t.key in filtered_keys if filtered_keys else True)
             and (start_date <= t.release_date_obj <= end_date)
         )
     ]
