@@ -169,7 +169,7 @@ def render_predictor(predictor: Predictor, filename: str, autopredict: bool = Fa
 
 
 def genre_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None, filename: str) -> str:
-    c1, c2, c3, c4 = st.columns((1.5, 6.5, 1, 1))
+    c1, c2, c3, c4 = st.columns((1.5, 2, 5.5, 1))
     c1.write(f"__Genre__{changed_string(track_info.genre, sst.get("ti_genre"))}")
     if c2.toggle("Predict"):
         genres = render_predictor(StylePredictor(), filename, autopredict=True)
@@ -177,6 +177,13 @@ def genre_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None, filenam
         c3.write(f"BPM __{bpm}__")
     else:
         genres = [("Trance", ""), ("Hardtrance", ""), ("House", "")]
+        captions = []
+        if track_info.bpm:
+            captions.append(f"BPM __{track_info.bpm}__")
+        if track_info.key:
+            captions.append(f"Key __{track_info.key}__")
+        if captions:
+            c3.write(" | ".join(captions))
 
     gcols = st.columns(len(genres) + 1)
     for i, (genre, prob) in enumerate(genres, start=1):

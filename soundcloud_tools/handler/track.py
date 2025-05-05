@@ -108,6 +108,9 @@ class TrackInfo(BaseModel):
     remix: Remix | None = None
     comment: Comment | None = None
 
+    bpm: int | None = None
+    key: str | None = None
+
     artist_options: set[str] = Field(default_factory=set)
 
     _artist_sep: ClassVar[str] = ", "
@@ -279,6 +282,8 @@ class TrackHandler(BaseModel):
             artwork=self.get_single_cover(raise_error=False),
             remix=remix,
             comment=Comment.from_str(self._get_tag_value(track, "COMM::XXX")),
+            bpm=convert_to_int(self._get_tag_value(track, "TBPM")) or None,
+            key=self._get_tag_value(track, "TKEY"),
         )
 
     @property
