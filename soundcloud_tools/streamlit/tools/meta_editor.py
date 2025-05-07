@@ -369,19 +369,6 @@ def cover_handler(track: ID3FileType, artwork: bytes | None = None):
     else:
         c2.error("Track has no covers")
 
-    all_covers = copy(covers)
-    for i, cover in enumerate(covers):
-        c1, c2 = st.columns((1, 2))
-        c1.image(cover.data, caption=f"Cover {i}", width=ARTWORK_WIDTH)
-        file_name = f"{track.tags.get("TPE1", "")}-{track.tags.get("TPE1", "")}_cover_{i}.jpg"
-        c2.download_button(f":material/download: {i}", data=cover.data, file_name=file_name, key=file_name)
-        if c2.button(":material/delete:", key=f"remove_{i}_{bool(artwork)}"):
-            all_covers.pop(i)
-            track.tags.delall("APIC")
-            track.tags.setall("APIC", all_covers)
-            st.rerun()
-
-    st.divider()
     c1, c2, c3 = st.columns(3)
     if c2.button(":material/delete:", key=f"remove_all_{bool(artwork)}", use_container_width=True):
         track.tags.delall("APIC")
@@ -400,6 +387,20 @@ def cover_handler(track: ID3FileType, artwork: bytes | None = None):
         track.save()
         st.success("Artwork added")
     c3.button(":material/refresh:", key=f"reload_{bool(artwork)}", use_container_width=True)
+
+    st.divider()
+
+    all_covers = copy(covers)
+    for i, cover in enumerate(covers):
+        c1, c2 = st.columns((1, 2))
+        c1.image(cover.data, caption=f"Cover {i}", width=ARTWORK_WIDTH)
+        file_name = f"{track.tags.get("TPE1", "")}-{track.tags.get("TPE1", "")}_cover_{i}.jpg"
+        c2.download_button(f":material/download: {i}", data=cover.data, file_name=file_name, key=file_name)
+        if c2.button(":material/delete:", key=f"remove_{i}_{bool(artwork)}"):
+            all_covers.pop(i)
+            track.tags.delall("APIC")
+            track.tags.setall("APIC", all_covers)
+            st.rerun()
 
 
 def main():
