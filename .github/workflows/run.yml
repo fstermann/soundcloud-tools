@@ -6,11 +6,13 @@ on:
       week:
         description: 'The week to archive. Defaults to 0 for the current week.'
         required: false
+        type: number
         default: 0
   schedule:
     # Weekly: Runs every Sunday at 6 AM UTC
     - cron: "0 6 * * 0"
     - cron: "0 18 * * 3"
+    - cron: "10 6 * * 0"
 
 jobs:
   archive:
@@ -24,10 +26,24 @@ jobs:
           python-version: '3.12'
           cache: 'poetry'
       - run: poetry install
+      - name: Set CLI arguments based on cron
+        run: |
+          case "${{ github.event.schedule }}" in
+            "0 6 * * 0") # Old Tracks First Half (Wednesday at 6 PM UTC)
+              echo 'CLI_ARGS="--week 1 --first --release-type old"' >> "$GITHUB_ENV"
+              ;;
+            "0 18 * * 3") # Old Tracks Second Half (Sunday at 6 AM UTC)
+              echo 'CLI_ARGS="--week 0 --second --release-type old"' >> "$GITHUB_ENV"
+              ;;
+            "10 6 * * 0") # New Tracks (Sunday at 6:10 AM UTC)
+              echo 'CLI_ARGS="--week 0 --release-type new"' >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo 'CLI_ARGS="--week 0"' >> "$GITHUB_ENV"
+              ;;
+          esac
       - name: Archive weekly
         env:
-          WEEK: ${{ github.event.schedule == '0 6 * * 0' && '0' || '1' }}
-          HALF: ${{ github.event.schedule == '0 6 * * 0' && '--second' || '--first' }}
           OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           DATADOME_CLIENTID: ${{ secrets.DATADOME_CLIENTID }}
@@ -35,4 +51,4 @@ jobs:
           PROXY: ${{ secrets.PROXY }}
           SC_A_ID: ${{ secrets.SC_A_ID }}
         run: |
-          poetry run soundcloud_tools --week $WEEK $HALF --exclude-liked
+          poetry run soundcloud_tools $CLI_ARGS --exclude-liked

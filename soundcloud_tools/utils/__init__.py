@@ -74,6 +74,11 @@ def sort_tracks_by_playcount(tracks: list[Track]) -> list[Track]:
     return sorted(set(tracks), key=lambda x: (x.playback_count or 0), reverse=True)
 
 
+def sort_tracks_by_follower_count(tracks: list[Track]) -> list[Track]:
+    """Sorts tracks by the follower count of the user who posted them in descending order."""
+    return sorted(set(tracks), key=lambda x: (x.user.followers_count or 0), reverse=True)
+
+
 def get_unique_track_ids(tracks: list[Track]) -> list[int]:
     """Returns a list of unique track IDs from the provided tracks."""
     track_ids = []
