@@ -30,16 +30,16 @@ jobs:
         run: |
           case "${{ github.event.schedule }}" in
             "0 6 * * 0") # Old Tracks First Half (Wednesday at 6 PM UTC)
-              echo 'CLI_ARGS="--week 1 --first --release-type old"' >> "$GITHUB_ENV"
+              echo "CLI_ARGS='--week 1 --first --release-type old'" >> "$GITHUB_ENV"
               ;;
             "0 18 * * 3") # Old Tracks Second Half (Sunday at 6 AM UTC)
-              echo 'CLI_ARGS="--week 0 --second --release-type old"' >> "$GITHUB_ENV"
+              echo "CLI_ARGS='--week 0 --second --release-type old'" >> "$GITHUB_ENV"
               ;;
             "10 6 * * 0") # New Tracks (Sunday at 6:10 AM UTC)
-              echo 'CLI_ARGS="--week 0 --release-type new"' >> "$GITHUB_ENV"
+              echo "CLI_ARGS='--week 0 --release-type new'" >> "$GITHUB_ENV"
               ;;
             *)
-              echo 'CLI_ARGS="--week 0"' >> "$GITHUB_ENV"
+              echo "CLI_ARGS='--week 0'" >> "$GITHUB_ENV"
               ;;
           esac
       - name: Archive weekly
