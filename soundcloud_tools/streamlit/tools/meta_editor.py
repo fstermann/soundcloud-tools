@@ -49,6 +49,7 @@ def render_file(file: Path, root_folder: Path):
     handler = TrackHandler(root_folder=root_folder, file=file)
     if not sst.get("ti_title"):
         copy_track_info(handler.track_info)
+    sst.finalize_disabled = root_folder.name != "prepare"
 
     with open(file, "rb") as f:
         st.audio(f)
@@ -210,10 +211,11 @@ def render_auto_checkboxes(handler: TrackHandler, sc_track_info: TrackInfo | Non
             f"Metadata {'' if handler.track_info.complete else 'not '}complete.\n"
             "Export to 320kb/s mp3 file."
         ),
-        disabled=len(handler.covers) != 1 or not handler.track_info.complete,
+        disabled=any((sst.finalize_disabled, len(handler.covers) != 1, not handler.track_info.complete)),
         use_container_width=True,
         on_click=finalize,
         args=(handler,),
+        type="primary",
     )
     st.caption("Auto-Actions")
     cols = st.columns(2)
