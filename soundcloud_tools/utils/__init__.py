@@ -22,8 +22,8 @@ class Weekday(IntEnum):
 
 def get_scheduled_time(day: Weekday = Weekday.SUNDAY, weeks: int = 0):
     now = datetime.now(tz=timezone.utc)
-    days_since = now.weekday() % day
-    last_day = now + timedelta(days=-days_since, weeks=weeks)
+    days_until = (day - now.weekday()) % 7
+    last_day = now + timedelta(days=days_until, weeks=weeks)
     return last_day.replace(hour=8, minute=0, second=0, microsecond=0)
 
 
@@ -32,7 +32,6 @@ def get_week_of_month(date: datetime) -> Weekday:
     first_day = date.replace(day=1)
     dom = date.day
     adjusted_dom = dom + first_day.weekday()
-
     return Weekday(int(ceil(adjusted_dom / 7.0)))
 
 
