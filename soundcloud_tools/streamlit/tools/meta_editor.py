@@ -49,7 +49,7 @@ def render_file(file: Path, root_folder: Path):
     handler = TrackHandler(root_folder=root_folder, file=file)
     if not sst.get("ti_title"):
         copy_track_info(handler.track_info)
-    sst.finalize_disabled = root_folder.name != "prepare"
+    sst.finalize_disabled = file.parent.name != "prepare"
 
     with open(file, "rb") as f:
         st.audio(f)
