@@ -129,6 +129,38 @@ def render_filters(path) -> list[int] | None:
         format_func=lambda x: f"{x} ({keys[x]})",
         on_change=reset_track_info_sst,
     )
+
+    # Harmonic keys
+    c1, c2 = st.columns(2)
+    base_key = c1.selectbox(
+        "Harmonic Key",
+        sorted(keys, key=split_key),  # type: ignore[arg-type]
+        format_func=lambda x: f"{x} ({keys[x]})",
+        on_change=reset_track_info_sst,
+    )
+    base_key_num, base_key_ab = split_key(base_key)
+
+    def add_key(num: int, ab: str = base_key_ab) -> str:
+        return f"{(base_key_num + num - 1) % 12 + 1}{ab}"
+
+    rules = {
+        "- 1": [add_key(-1)],
+        "+ 1": [add_key(1)],
+        "- 2": [add_key(-1)],
+        "+ 2": [add_key(2)],
+        "+ 7": [add_key(7)],
+        "Switch A/B": [add_key(-1, "B") if base_key_ab == "A" else add_key(1, "A")],
+    }
+
+    selected_rules = c2.multiselect(
+        "Harmonic Rules",
+        rules,
+        on_change=reset_track_info_sst,
+    )
+    if harmonic_keys := [rule for r in selected_rules if r in rules for rule in rules[r]]:
+        st.caption(":material/keyboard_arrow_right:" + ", ".join(harmonic_keys))
+    filtered_keys += harmonic_keys
+
     start_date = st.date_input("Start Date", value=None, on_change=reset_track_info_sst) or date.min
     end_date = st.date_input("End Date", value=None, on_change=reset_track_info_sst) or date.today()
 
@@ -136,17 +168,19 @@ def render_filters(path) -> list[int] | None:
     selected_indices = [
         i
         for i, t in enumerate(track_infos)
-        if (
-            (t.genre in filtered_genres if filtered_genres else True)
-            and (any(a in t.artist_str for a in filtered_artists) if filtered_artists else True)
-            and (
-                any(search in attr for attr in (t.genre.lower(), t.artist_str.lower(), t.title.lower()))
-                if search
-                else True
-            )
-            and ((t.comment and t.comment.version) in filtered_versions if filtered_versions else True)
-            and (t.key in filtered_keys if filtered_keys else True)
-            and (start_date <= t.release_date_obj <= end_date)
+        if all(
+            (
+                t.genre in filtered_genres if filtered_genres else True,
+                any(a in t.artist_str for a in filtered_artists) if filtered_artists else True,
+                (
+                    any(search in attr for attr in (t.genre.lower(), t.artist_str.lower(), t.title.lower()))
+                    if search
+                    else True
+                ),
+                (t.comment and t.comment.version) in filtered_versions if filtered_versions else True,
+                t.key in filtered_keys if filtered_keys else True,
+                start_date <= t.release_date_obj <= end_date,
+            ),
         )
     ]
 
