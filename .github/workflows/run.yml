@@ -51,4 +51,4 @@ jobs:
           PROXY: ${{ secrets.PROXY }}
           SC_A_ID: ${{ secrets.SC_A_ID }}
         run: |
-          poetry run soundcloud_tools $CLI_ARGS --exclude-liked
+          poetry run soundcloud_tools "${CLI_ARGS::-1}" --exclude-liked
