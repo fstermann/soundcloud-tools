@@ -7,6 +7,9 @@ def bold(text: str) -> str:
 
 
 def clean_artists(artists: str) -> str:
+    artists = remove_double_spaces(artists)
+    artists = remove_free_dl(artists)
+    artists = remove_premiere(artists)
     return re.sub(r"\s+(&|and|x|X)\s+", ", ", artists)
 
 
@@ -21,6 +24,10 @@ def changed_string(old: Any, new: Any) -> str:
 
 def remove_free_dl(title: str):
     return re.sub(r"[\(\[\{]\s*free\s*(dl|download)\s*.*?[\)\]\}]", "", title, flags=re.IGNORECASE).strip()
+
+
+def remove_premiere(title: str):
+    return re.sub(r"premiere:?", "", title, flags=re.IGNORECASE).strip()
 
 
 def remove_parenthesis(title: str):
@@ -54,7 +61,7 @@ def get_first_artist(title: str) -> str | None:
 def get_mix_arist(title: str) -> str | None:
     if match := re.search(r"\((.*)\)", title):
         mix_name = match.group(1)
-        return re.sub(r"edit|remix|bootleg|rework|mix", "", mix_name, flags=re.IGNORECASE).strip()
+        return re.sub(r"edit|remix|bootleg|rework|mix|flip", "", mix_name, flags=re.IGNORECASE).strip()
     return None
 
 
@@ -68,6 +75,7 @@ def clean_title(title: str):
     title = remove_double_spaces(title)
     title.replace("–", "-")  # noqa: RUF001
     title = remove_free_dl(title)
+    title = remove_premiere(title)
     if is_remix(title):
         return title
     if match := re.match(r"(.*?)\s*-\s*(.*)", title):
