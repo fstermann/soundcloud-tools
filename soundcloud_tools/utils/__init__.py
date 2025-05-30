@@ -27,12 +27,12 @@ def get_scheduled_time(day: Weekday = Weekday.SUNDAY, weeks: int = 0):
     return last_day.replace(hour=8, minute=0, second=0, microsecond=0)
 
 
-def get_week_of_month(date: datetime) -> Weekday:
+def get_week_of_month(date: datetime) -> int:
     """Returns the week of the month for the specified date."""
     first_day = date.replace(day=1)
     dom = date.day
     adjusted_dom = dom + first_day.weekday()
-    return Weekday(int(ceil(adjusted_dom / 7.0)))
+    return int(ceil(adjusted_dom / 7.0))
 
 
 def get_default_kwargs(func):

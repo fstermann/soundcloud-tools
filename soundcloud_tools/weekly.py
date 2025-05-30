@@ -212,6 +212,7 @@ async def create_weekly_favorite_playlist(
     logger.info(f"Creating weekly favorite playlist for {week = } and {types = }")
     start = get_scheduled_time(Weekday.SUNDAY, weeks=week - 1)
     end = get_scheduled_time(Weekday.SUNDAY, weeks=week)
+    month, week_of_month = end.strftime("%b"), get_week_of_month(end)
     match half:
         case "first":
             end -= (end - start) / 2
@@ -219,7 +220,6 @@ async def create_weekly_favorite_playlist(
             start += (end - start) / 2
 
     logger.info(f"Collecting favorites for {start.date()} - {end.date()}")
-    month, week_of_month = start.strftime("%b"), get_week_of_month(start)
 
     # Filter tracks
     tracks = await get_tracks_ids_in_timespan(client, user_id=user_id, start=start, end=end, types=types)
