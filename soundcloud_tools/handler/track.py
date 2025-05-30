@@ -1,10 +1,10 @@
 import logging
 import re
+import subprocess
 from datetime import date
 from pathlib import Path
 from typing import Any, ClassVar, Literal, Self
 
-import pydub
 import requests
 from mutagen.aiff import AIFF
 from mutagen.easyid3 import EasyID3
@@ -300,8 +300,18 @@ class TrackHandler(BaseModel):
     def convert_to_mp3(self):
         if not self.cleaned_folder.exists():
             self.cleaned_folder.mkdir(parents=True)
-        sound = pydub.AudioSegment.from_file(self.file)
-        sound.export(self.mp3_file, format="mp3", bitrate=f"{self.bitrate}k")
+        command = [
+            "ffmpeg",
+            "-i",
+            self.file,
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            f"{self.bitrate}k",
+            "-y",
+            self.mp3_file,
+        ]
+        subprocess.run(command, check=True)
         return self.mp3_file
 
     def move_to_cleaned(self):
