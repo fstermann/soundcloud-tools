@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from typing import Any
 
 
@@ -15,7 +16,8 @@ def clean_artists(artists: str) -> str:
 
 def titelize(string: str) -> str:
     string = string.title()
-    return re.sub("dj", "DJ", string, flags=re.IGNORECASE)
+    string = re.sub("dj", "DJ", string, flags=re.IGNORECASE)
+    return re.sub("'S", "'s", string)
 
 
 def changed_string(old: Any, new: Any) -> str:
@@ -27,7 +29,7 @@ def remove_free_dl(title: str):
 
 
 def remove_premiere(title: str):
-    return re.sub(r"premiere:?", "", title, flags=re.IGNORECASE).strip()
+    return re.sub(r"(premiere|premear):?", "", title, flags=re.IGNORECASE).strip()
 
 
 def remove_parenthesis(title: str):
@@ -43,7 +45,7 @@ def replace_underscores(title: str):
 
 
 def is_remix(title: str) -> bool:
-    return bool(re.search(r"\(.*edit|mix|bootleg|rework.*\)", title, flags=re.IGNORECASE))
+    return bool(re.search(r"\(.*edit|mix|bootleg|rework|flip.*\)", title, flags=re.IGNORECASE))
 
 
 def get_mix_name(title: str) -> str | None:
@@ -81,3 +83,10 @@ def clean_title(title: str):
     if match := re.match(r"(.*?)\s*-\s*(.*)", title):
         title = match.group(2)
     return title
+
+
+def parse_date(text: str) -> date | None:
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        return None
