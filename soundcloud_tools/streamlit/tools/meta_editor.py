@@ -419,5 +419,5 @@ def main():
     render_file(file, root_folder)
 
 
-if __name__ == "__page__":
+if __name__ == "__main__":
     main()

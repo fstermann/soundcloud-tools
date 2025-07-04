@@ -230,5 +230,5 @@ def filter_collection(
     return sorted(items, key=lambda x: x.created_at, reverse=True)
 
 
-if __name__ == "__page__":
+if __name__ == "__main__":
     main()
