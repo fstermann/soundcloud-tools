@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from soundcloud_tools.models import Track
 from soundcloud_tools.settings import get_settings
 from soundcloud_tools.utils import convert_to_int, load_tracks
-from soundcloud_tools.utils.string import get_first_artist, get_mix_arist, get_mix_name, is_remix
+from soundcloud_tools.utils.string import get_first_artist, get_mix_arist, get_mix_name, is_remix, parse_date
 
 logger = logging.getLogger(__name__)
 FILETYPE_MAP = {
@@ -41,9 +41,9 @@ class Comment(BaseModel):
         return re.sub(r"([=;\\])", r"\\\1", value)
 
     @classmethod
-    def from_str(cls, string: str) -> Self | None:
+    def from_str(cls, string: str) -> Self:
         if not string:
-            return None
+            return cls()
         pairs = [pair.split("=", 1) for pair in re.split(r"(?<!\\);\s*", string)]
         try:
             data = {k: cls.unescape_value(str(v)) for k, v in pairs}
@@ -100,8 +100,7 @@ class TrackInfo(BaseModel):
     title: str
     artist: str | list[str]
     genre: str
-    year: int
-    release_date: str
+    release_date: date | None = None
     artwork: bytes | None = None
     artwork_url: str | None = None
 
@@ -131,7 +130,7 @@ class TrackInfo(BaseModel):
 
     @property
     def complete(self) -> bool:
-        return all([self.title, self.artist, self.genre, self.year, self.release_date, self.artwork])
+        return all([self.title, self.artist, self.genre, self.release_date, self.artwork])
 
     @property
     def artist_str(self) -> str:
@@ -187,8 +186,7 @@ class TrackInfo(BaseModel):
             title=track.title,
             artist=next(iter(most_likely_artists), ""),
             genre=track.genre or "",
-            year=track.display_date.year,
-            release_date=track.display_date.strftime("%Y-%m-%d"),
+            release_date=track.display_date.date(),
             artwork_url=track.hq_artwork_url or track.user.hq_avatar_url,
             artist_options=artist_options,
             remix=Remix(
@@ -198,10 +196,6 @@ class TrackInfo(BaseModel):
             ),
             comment=Comment.from_sc_track(track),
         )
-
-    @property
-    def release_date_obj(self) -> date:
-        return date.fromisoformat(self.release_date)
 
 
 class TrackHandler(BaseModel):
@@ -277,8 +271,7 @@ class TrackHandler(BaseModel):
             title=self._get_tag_value(track, "TIT2"),
             artist=self._get_tag_list_value(track, "TPE1"),
             genre=self._get_tag_value(track, "TCON"),
-            year=convert_to_int(self._get_tag_value(track, "TDRC", default=0), default=0),
-            release_date=self._get_tag_value(track, "TDRL"),
+            release_date=parse_date(self._get_tag_value(track, "TDRL")),
             artwork=self.get_single_cover(raise_error=False),
             remix=remix,
             comment=Comment.from_str(self._get_tag_value(track, "COMM::XXX")),
@@ -320,24 +313,25 @@ class TrackHandler(BaseModel):
         safe_name = self.file.name.replace("/", "-")
         self.file.rename(self.cleaned_folder / safe_name)
 
-    def update_release_date(self, release_date: str):
-        track = self.track
-        track.tags.delall("TDRL")
-        track.tags.add(TDRL(encoding=3, text=release_date))
-        track.save()
-
     def set_genre(self, genre: str):
         track = self.track
         track.tags.delall("TCON")
         track.tags.add(TCON(encoding=3, text=genre))
         track.save()
 
+    def remove_remix(self):
+        track = self.track
+        track.tags.delall("TOPE")
+        track.tags.delall("TPE4")
+        track.tags.delall("TIT3")
+        track.save()
+
     def _add_info(self, track, info: TrackInfo, artwork: bytes | None = None):
         track.add(TIT2(encoding=3, text=info.title))
         track.add(TPE1(encoding=3, text=info.artist_str))
         track.add(TCON(encoding=3, text=info.genre))
-        track.add(TDRC(encoding=3, text=str(info.year)))
-        track.add(TDRL(encoding=3, text=info.release_date))
+        track.add(TDRC(encoding=3, text=str(info.release_date.year) if info.release_date else ""))
+        track.add(TDRL(encoding=3, text=info.release_date.strftime("%Y-%m-%d") if info.release_date else ""))
         if artwork:
             track.delall("APIC")
             track.add(

@@ -17,7 +17,8 @@ def clean_artists(artists: str) -> str:
 def titelize(string: str) -> str:
     string = string.title()
     string = re.sub("dj", "DJ", string, flags=re.IGNORECASE)
-    return re.sub("'S", "'s", string)
+    string = re.sub("'S", "'s", string)
+    return re.sub("'T", "'t", string)
 
 
 def changed_string(old: Any, new: Any) -> str:

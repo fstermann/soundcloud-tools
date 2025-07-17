@@ -35,7 +35,7 @@ def generate_css(**kwargs):
     return ";".join(f"{k.replace('_', '-')}:{v}" for k, v in kwargs.items())
 
 
-def render_embedded_track(track: Track):
+def render_embedded_track(track: Track, height: int = 300):
     options = {
         "url": f"https://api.soundcloud.com/tracks/{track.id}",
         "color": "#ff5500",
@@ -66,7 +66,7 @@ def render_embedded_track(track: Track):
 
     st.write(
         f"""\
-<iframe width="100%" height="300" scrolling="no" frameborder="no" allow="autoplay" src="{src_url}"></iframe>
+<iframe width="100%" height="{height}" scrolling="no" frameborder="no" allow="autoplay" src="{src_url}"></iframe>
 <div style="{div_css}">
 <a href="{track.user.permalink_url}" title="{track.user.full_name}" target="_blank" style="{link_css}">\
 {track.user.full_name}</a>
@@ -80,7 +80,10 @@ def render_embedded_track(track: Track):
 def reset_track_info_sst():
     for key in sst:
         if key.startswith("ti_"):
-            sst[key] = type(sst[key])()
+            try:
+                sst[key] = type(sst[key])()
+            except (TypeError, ValueError):
+                sst[key] = None
 
 
 def wrap_and_reset_state(func: Callable):

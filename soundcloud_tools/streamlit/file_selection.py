@@ -179,7 +179,7 @@ def render_filters(path) -> list[int] | None:
                 ),
                 (t.comment and t.comment.version) in filtered_versions if filtered_versions else True,
                 t.key in filtered_keys if filtered_keys else True,
-                start_date <= t.release_date_obj <= end_date,
+                start_date <= t.release_date <= end_date,
             ),
         )
     ]
