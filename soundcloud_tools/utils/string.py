@@ -18,6 +18,7 @@ def titelize(string: str) -> str:
     string = string.title()
     string = re.sub("dj", "DJ", string, flags=re.IGNORECASE)
     string = re.sub("'S", "'s", string)
+    string = re.sub("'Re", "'re", string)
     return re.sub("'T", "'t", string)
 
 
@@ -27,6 +28,10 @@ def changed_string(old: Any, new: Any) -> str:
 
 def remove_free_dl(title: str):
     return re.sub(r"[\(\[\{]\s*free\s*(dl|download)\s*.*?[\)\]\}]", "", title, flags=re.IGNORECASE).strip()
+
+
+def remove_remix(title: str):
+    return re.sub(r"\(.*edit|mix|bootleg|rework|flip.*\)", "", title, flags=re.IGNORECASE).strip()
 
 
 def remove_premiere(title: str):

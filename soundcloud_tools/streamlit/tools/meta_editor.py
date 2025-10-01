@@ -29,6 +29,7 @@ from soundcloud_tools.utils.string import (
     clean_title,
     remove_double_spaces,
     remove_free_dl,
+    remove_remix,
     replace_underscores,
     titelize,
 )
@@ -58,7 +59,7 @@ def render_file(file: Path, root_folder: Path):
 
     # Metadata
     with st.sidebar.container(border=True):
-        clean_title = remove_double_spaces(replace_underscores(remove_free_dl(handler.file.stem)))
+        clean_title = remove_double_spaces(remove_remix(replace_underscores(remove_free_dl(handler.file.stem))))
         sc_track_info = render_soundcloud_search(clean_title)
 
     c1, c2 = st.columns((3, 6.5))

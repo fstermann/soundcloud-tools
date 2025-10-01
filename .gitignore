@@ -7,3 +7,4 @@ ca.crt
 # Essentia model weights
 *.pb
 *.onnx
+.vscode
