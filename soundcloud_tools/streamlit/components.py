@@ -355,6 +355,9 @@ def comment_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Co
     caption_col, field_cols, buttons = build_component_columns(6, mid=[0.25, 0.25])
     sst.setdefault("ti_comment", track_info.comment.to_str() if track_info and track_info.comment else "")
     comment = sst.get("ti_comment")
+    sst.setdefault("ti_comment_on_sc", True)
+    on_soundcloud = field_cols[0].checkbox("On Soundcloud", key="ti_comment_on_sc")
+    
     old_comment = track_info.comment.to_str() if track_info and track_info.comment else ""
     caption_col.write(f"__Comment__ {changed_string(old_comment, comment)}")
 
@@ -372,5 +375,9 @@ def comment_editor(track_info: TrackInfo, sc_track_info: TrackInfo | None) -> Co
     )
     if not comment:
         return None
-    field_cols[0].code(comment.replace("\n", "  \n"))
-    return Comment.from_str(comment)
+    out_comment = Comment.from_str(comment)
+    if not on_soundcloud:
+        out_comment.soundcloud_id = None
+        out_comment.soundcloud_permalink = None
+    field_cols[0].code(out_comment.to_str().replace("\n", "  \n"))
+    return out_comment

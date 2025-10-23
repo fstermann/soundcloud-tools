@@ -81,7 +81,10 @@ def reset_track_info_sst():
     for key in sst:
         if key.startswith("ti_"):
             try:
-                sst[key] = type(sst[key])()
+                if key == "ti_comment_on_sc":
+                    sst[key] = True
+                else:
+                    sst[key] = type(sst[key])()
             except (TypeError, ValueError):
                 sst[key] = None
 
